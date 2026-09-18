@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>BrandShield AI</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f1117;
+            color: #ffffff;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 32px;
+        }
+
+        header p {
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #181b24;
+            border: 1px solid #272b36;
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        .card-title {
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns:
+                2fr 1fr;
+
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            background: #181b24;
+            border: 1px solid #272b36;
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        .panel h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .risk-box {
+            text-align: center;
+            padding: 30px 10px;
+        }
+
+        .risk-score {
+            font-size: 55px;
+            font-weight: bold;
+        }
+
+        .risk-level {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .alerts {
+            margin-top: 25px;
+        }
+
+        .alert {
+            background: #20232d;
+            border: 1px solid #353946;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+
+        .alert-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .alert p {
+            color: #b8bdc9;
+            margin: 5px 0;
+        }
+
+        .no-alert {
+            color: #8f96a3;
+        }
+
+        @media (max-width: 900px) {
+
+            .cards {
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 15px;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <header>
+
+        <h1>🛡️ BrandShield AI</h1>
+
+        <p>
+            Real-Time Brand Risk & Sentiment Intelligence
+        </p>
+
+    </header>
+
+    <nav style="
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px;
+">
+
+    <a href="/"
+       style="
+           color: white;
+           text-decoration: none;
+           background: #20232d;
+           padding: 10px 18px;
+           border-radius: 8px;
+       ">
+        Dashboard
+    </a>
+
+    <a href="/analyze"
+       style="
+           color: white;
+           text-decoration: none;
+           background: #20232d;
+           padding: 10px 18px;
+           border-radius: 8px;
+       ">
+        Analyze Comment
+    </a>
+
+</nav>
+
+
+    <!-- KPI CARDS -->
+
+    <div class="cards">
+
+        <div class="card">
+
+            <div class="card-title">
+                TOTAL COMMENTS
+            </div>
+
+            <div class="card-value">
+                {{ total_comments }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                POSITIVE
+            </div>
+
+            <div class="card-value">
+                {{ positive }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                NEGATIVE
+            </div>
+
+            <div class="card-value">
+                {{ negative }}
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                NEUTRAL
+            </div>
+
+            <div class="card-value">
+                {{ neutral }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MAIN DASHBOARD -->
+
+    <div class="dashboard-grid">
+
+
+        <!-- RISK TREND -->
+
+        <div class="panel">
+
+            <h2>Risk & Sentiment Trend</h2>
+
+            <div class="chart-container">
+
+                <canvas id="riskChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- RISK STATUS -->
+
+        <div class="panel">
+
+            <h2>Current Brand Risk</h2>
+
+            <div class="risk-box">
+
+                <div class="risk-score">
+
+                    {{ risk_score }}
+
+                </div>
+
+                <div>
+                    / 100
+                </div>
+
+                <div class="risk-level">
+
+                    {{ risk_level }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ASPECT ANALYSIS -->
+
+    <div class="panel">
+
+        <h2>Brand Aspect Analysis</h2>
+
+        <div class="chart-container">
+
+            <canvas id="aspectChart"></canvas>
+
+        </div>
+
+    </div>
+
+
+    <!-- ALERTS -->
+
+    <div class="panel alerts">
+
+        <h2>🚨 Crisis / Anomaly Alerts</h2>
+
+
+        {% if alerts %}
+
+            {% for alert in alerts %}
+
+                <div class="alert">
+
+                    <div class="alert-title">
+                        ⚠️ Anomaly Detected
+                    </div>
+
+                    <p>
+                        <strong>Time:</strong>
+                        {{ alert.timestamp }}
+                    </p>
+
+                    <p>
+                        <strong>Negative Comments:</strong>
+                        {{ alert.negative_comments }}
+                    </p>
+
+                    <p>
+                        <strong>Negative Sentiment:</strong>
+                        {{ alert.negative_percentage }}%
+                    </p>
+
+                    <p>
+                        <strong>Risk Score:</strong>
+                        {{ alert.risk_score }}/100
+                    </p>
+
+                    <p>
+                        <strong>Risk Level:</strong>
+                        {{ alert.risk_level }}
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p class="no-alert">
+                ✅ No anomalies detected.
+            </p>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- RECENT COMMENTS -->
+
+    <div class="panel alerts">
+
+        <h2>💬 Recent Analyzed Comments</h2>
+
+        {% if recent_comments %}
+
+            {% for item in recent_comments %}
+
+                <div class="alert">
+
+                    <p>
+                        <strong>Comment:</strong>
+                        {{ item.comment }}
+                    </p>
+
+                    <p>
+                        <strong>Sentiment:</strong>
+                        {{ item.sentiment }}
+                    </p>
+
+                    <p>
+                        <strong>Confidence:</strong>
+                        {{ item.confidence }}%
+                    </p>
+
+                    <p>
+                        <strong>Aspect:</strong>
+                        {{ item.aspects }}
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p class="no-alert">
+                No comments available.
+            </p>
+
+        {% endif %}
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+
+    // -------------------------
+    // Risk Chart
+    // -------------------------
+
+    const labels =
+        {{ chart_labels | tojson }};
+
+    const riskScores =
+        {{ risk_scores | tojson }};
+
+    const negativePercentages =
+        {{ negative_percentages | tojson }};
+
+
+    new Chart(
+
+        document.getElementById("riskChart"),
+
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+
+                        label: "Risk Score",
+
+                        data: riskScores,
+
+                        tension: 0.3
+
+                    },
+
+                    {
+
+                        label: "Negative Sentiment %",
+
+                        data: negativePercentages,
+
+                        tension: 0.3
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        max: 100
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    );
+
+
+    // -------------------------
+    // Aspect Chart
+    // -------------------------
+
+    const aspectLabels =
+        {{ aspect_labels | tojson }};
+
+    const aspectValues =
+        {{ aspect_values | tojson }};
+
+
+    new Chart(
+
+        document.getElementById("aspectChart"),
+
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: aspectLabels,
+
+                datasets: [
+
+                    {
+
+                        label: "Comments",
+
+                        data: aspectValues
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            precision: 0
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    );
+
+</script>
+
+
+</body>
+
+</html>

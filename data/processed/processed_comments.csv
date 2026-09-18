@@ -1,0 +1,31 @@
+comment,timestamp,brand,cleaned_comment,sentiment,confidence,aspects
+Absolutely loved the coffee! Amazing taste.,2026-09-01 09:15,BeanTheory,Absolutely loved the coffee! Amazing taste.,POSITIVE,0.9999,['food_quality']
+Great service and friendly staff.,2026-09-01 10:20,BeanTheory,Great service and friendly staff.,POSITIVE,0.9999,['service']
+The food was really good.,2026-09-01 11:10,BeanTheory,The food was really good.,POSITIVE,0.9999,['food_quality']
+Beautiful cafe and great ambience.,2026-09-01 12:05,BeanTheory,Beautiful cafe and great ambience.,POSITIVE,0.9999,['ambience']
+Coffee was cold when it arrived.,2026-09-01 13:15,BeanTheory,Coffee was cold when it arrived.,NEGATIVE,0.9978,"['delivery', 'food_quality']"
+Delivery took almost two hours.,2026-09-01 13:30,BeanTheory,Delivery took almost two hours.,NEGATIVE,0.9917,['delivery']
+Really disappointed with the delivery.,2026-09-01 13:45,BeanTheory,Really disappointed with the delivery.,NEGATIVE,0.9998,['delivery']
+Worst delivery experience I've had.,2026-09-01 14:00,BeanTheory,Worst delivery experience I've had.,NEGATIVE,0.9998,['delivery']
+Food arrived completely cold.,2026-09-01 14:10,BeanTheory,Food arrived completely cold.,NEGATIVE,0.9993,"['delivery', 'food_quality']"
+Your delivery service is terrible.,2026-09-01 14:20,BeanTheory,Your delivery service is terrible.,NEGATIVE,0.9998,"['delivery', 'service']"
+Waiting two hours for food is unacceptable.,2026-09-01 14:30,BeanTheory,Waiting two hours for food is unacceptable.,NEGATIVE,0.9997,"['delivery', 'food_quality']"
+Very poor delivery service.,2026-09-01 14:40,BeanTheory,Very poor delivery service.,NEGATIVE,0.9998,"['delivery', 'service']"
+Please fix your delivery system.,2026-09-01 14:50,BeanTheory,Please fix your delivery system.,NEGATIVE,0.998,['delivery']
+Food is good but delivery is horrible.,2026-09-01 15:00,BeanTheory,Food is good but delivery is horrible.,NEGATIVE,0.9741,"['delivery', 'food_quality']"
+Love the coffee as always!,2026-09-01 16:00,BeanTheory,Love the coffee as always!,POSITIVE,0.9999,['food_quality']
+Staff was helpful and polite.,2026-09-02 09:20,BeanTheory,Staff was helpful and polite.,POSITIVE,0.9997,['service']
+Great cappuccino!,2026-09-02 10:10,BeanTheory,Great cappuccino!,POSITIVE,0.9998,['food_quality']
+Nice ambience.,2026-09-02 11:15,BeanTheory,Nice ambience.,POSITIVE,0.9999,['ambience']
+Good experience overall.,2026-09-02 12:30,BeanTheory,Good experience overall.,POSITIVE,0.9999,['general']
+Delivery was on time today.,2026-09-02 13:00,BeanTheory,Delivery was on time today.,POSITIVE,0.9456,['delivery']
+Food quality is excellent.,2026-09-02 14:00,BeanTheory,Food quality is excellent.,POSITIVE,0.9999,['food_quality']
+Really tasty food.,2026-09-02 15:00,BeanTheory,Really tasty food.,POSITIVE,0.9999,['food_quality']
+Service was quick.,2026-09-02 16:00,BeanTheory,Service was quick.,POSITIVE,0.9956,['service']
+Great place to hang out.,2026-09-03 09:10,BeanTheory,Great place to hang out.,POSITIVE,0.9999,['ambience']
+Coffee tastes amazing.,2026-09-03 10:00,BeanTheory,Coffee tastes amazing.,POSITIVE,0.9999,['food_quality']
+Staff are very friendly.,2026-09-03 11:00,BeanTheory,Staff are very friendly.,POSITIVE,0.9998,['service']
+Good prices and good food.,2026-09-03 12:00,BeanTheory,Good prices and good food.,POSITIVE,0.9999,"['food_quality', 'price']"
+Fast delivery.,2026-09-03 13:00,BeanTheory,Fast delivery.,POSITIVE,0.9997,['delivery']
+Everything was perfect.,2026-09-03 14:00,BeanTheory,Everything was perfect.,POSITIVE,0.9999,['general']
+Excellent experience.,2026-09-03 15:00,BeanTheory,Excellent experience.,POSITIVE,0.9999,['general']

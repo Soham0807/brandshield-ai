@@ -1,0 +1,84 @@
+text,label,aspects
+"Honestly the best filter coffee I've had in Nashik, will be back",positive,food_quality
+"Loved the brownie, perfectly gooey inside",positive,food_quality
+"Portions were generous and everything tasted fresh",positive,food_quality
+"The pasta was bland and overcooked, really disappointing",negative,food_quality
+"My sandwich had stale bread, not okay at all",negative,food_quality
+"Coffee tasted burnt today",negative,food_quality
+"The latte was fine, nothing special",neutral,food_quality
+"They have added three new desserts to the menu",neutral,food_quality
+"Staff went out of their way to help us celebrate a birthday",positive,service
+"Super polite waiter, explained every dish patiently",positive,service
+"We sat for 40 minutes before anyone even brought water",negative,service
+"The cashier was rude when I asked for the bill",negative,service
+"Nobody responded to my complaint at the counter",negative,service
+"The staff wear new uniforms now",neutral,service
+"Service was quick even though it was a busy Saturday",positive,service
+"Order reached in 20 minutes and still hot, great job",positive,delivery
+"Delivery guy was very courteous",positive,delivery
+"Ordered at 8pm and the food came at 9:30, cold and soggy",negative,delivery
+"They delivered someone else's order and refused to fix it",negative,delivery
+"Half my order was missing when it arrived",negative,delivery
+"My order is being prepared",neutral,delivery
+"Can I get delivery to College Road?",neutral,delivery
+"Reasonable prices for this quality, totally worth it",positive,price
+"Student friendly prices, love this place",positive,price
+"Rs 350 for a cold coffee is daylight robbery",negative,price
+"They increased prices but reduced the portion size",negative,price
+"What is the price of the breakfast combo?",neutral,price
+"The interiors are gorgeous and the lighting is perfect for photos",positive,ambience
+"Calm place with soft music, great for reading",positive,ambience
+"Way too loud and cramped, couldn't hear my friend",negative,ambience
+"AC was not working and it was unbearably hot inside",negative,ambience
+"They have outdoor seating on the terrace",neutral,ambience
+"Spotless kitchen and staff wear gloves, very reassuring",positive,hygiene
+"Saw a cockroach near our table, absolutely disgusting",negative,hygiene
+"The washroom was filthy",negative,hygiene
+"My whole family got sick after eating here",negative,hygiene
+"Their app is smooth and the loyalty points are useful",positive,app_experience
+"Payment failed twice but money was debited, still no refund",negative,app_experience
+"App keeps logging me out, so frustrating",negative,app_experience
+"Is there a promo code for first order on the app?",neutral,app_experience
+"Packaging was neat and nothing spilled",positive,packaging
+"The soup leaked all over the bag",negative,packaging
+"Too much plastic in the packaging, please switch to paper",negative,packaging
+"Great food but the service was terribly slow",neutral,food_quality|service
+"Nice ambience although prices are on the higher side",neutral,ambience|price
+"Delivery was late but the pizza was still amazing",neutral,delivery|food_quality
+"Absolutely love this cafe ❤️",positive,
+"This place never disappoints 🔥🔥",positive,
+"Worst experience ever 😡",negative,
+"Not coming back here again",negative,
+"I wouldn't recommend this place to anyone",negative,
+"Not bad at all, pleasantly surprised",positive,
+"Visited this place yesterday evening",neutral,
+"Are you open on Diwali?",neutral,
+"Meeting friends here at 6",neutral,
+"They opened a new outlet in Pune",neutral,
+"Khana bahut badhiya tha, maza aa gaya",positive,food_quality
+"Service ekdum mast hai yaha",positive,service
+"Coffee bilkul bekar thi, paise waste",negative,food_quality
+"Delivery bahut late aayi aur khana thanda tha",negative,delivery|food_quality
+"Itna mehenga aur taste ghatiya",negative,price|food_quality
+"Staff ka attitude bahut kharab hai",negative,service
+"Kal yaha gaye the dost ke saath",neutral,
+"Jevan khup chan hota, nakki ya",positive,food_quality
+"Service khup vait hoti",negative,service
+"खाना बहुत स्वादिष्ट था",positive,food_quality
+"सर्विस बहुत खराब है",negative,service
+"कैफे आज बंद है क्या?",neutral,
+"कॉफी एकदम मस्त आहे",positive,food_quality
+"Le café était délicieux",positive,food_quality
+"El servicio fue terrible",negative,service
+"The new menu launches next Monday",neutral,food_quality
+"Thanks for the quick response to my complaint, issue resolved",positive,service
+"They refunded me immediately after I complained, respect",positive,app_experience
+"Still waiting for a reply to my email from last week",negative,service
+"The coffee is okay but the croissant is amazing",positive,food_quality
+"Yeah great, another hour waiting for my order. Brilliant service 🙄",negative,service|delivery
+"Oh wonderful, cold food again",negative,food_quality
+"Would give zero stars if I could",negative,
+"10/10 would visit again",positive,
+"Mediocre at best",negative,
+"It's an average cafe, does the job",neutral,
+"Decent food, decent prices",neutral,food_quality|price

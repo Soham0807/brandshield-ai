@@ -1,0 +1,24 @@
+# Automatic HTTPS from Let's Encrypt + a password gate.
+# The app has no user accounts yet, so this is what keeps the dashboard private.
+{
+	email {{EMAIL}}
+}
+
+{{DOMAIN}} {
+	encode zstd gzip
+
+	basic_auth {
+		admin {{HASH}}
+	}
+
+	# WebSocket for the live feed + REST API + the built dashboard
+	reverse_proxy 127.0.0.1:8000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	log {
+		output file /var/log/caddy/brandshield.log
+		format console
+	}
+}

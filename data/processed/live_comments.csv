@@ -1,0 +1,9 @@
+comment,cleaned_comment,timestamp,brand,sentiment,confidence,aspects
+The delivery was extremely late and my food arrived cold.,The delivery was extremely late and my food arrived cold.,2026-09-17 00:25:25,BeanTheory,NEGATIVE,0.9998,"['delivery', 'food_quality']"
+The delivery was extremely late and my food arrived cold.,The delivery was extremely late and my food arrived cold.,2026-09-17 00:28:38,BeanTheory,NEGATIVE,0.9998,"['delivery', 'food_quality']"
+The food was terrible,The food was terrible,2026-09-17 00:28:49,BeanTheory,NEGATIVE,0.9991,['food_quality']
+the food was bad,the food was bad,2026-09-17 00:29:34,BeanTheory,NEGATIVE,0.9998,['food_quality']
+The service was extremely good,The service was extremely good,2026-09-17 00:33:47,BeanTheory,POSITIVE,0.9998,['service']
+Tanish your tattoo was nice,Tanish your tattoo was nice,2026-09-17 00:34:24,BeanTheory,POSITIVE,0.9994,['general']
+I loved ur perfume,I loved ur perfume,2026-09-17 13:33:51,BeanTheory,POSITIVE,0.999,['general']
+I love british food,I love british food,2026-09-17 13:34:03,BeanTheory,POSITIVE,0.9998,['food_quality']

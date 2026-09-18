@@ -1,0 +1,22 @@
+[Unit]
+Description=BrandShield AI - real-time brand risk & sentiment intelligence
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=brandshield
+Group=brandshield
+WorkingDirectory=/opt/brandshield/backend
+Environment="HF_HOME=/opt/brandshield/.cache/huggingface"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/opt/brandshield/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=5
+# the model needs room; fail loudly instead of thrashing
+MemoryHigh=3G
+MemoryMax=3500M
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
