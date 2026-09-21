@@ -1,0 +1,226 @@
+classDiagram
+direction TB
+
+%% ===== shared abstraction =====
+class Collector {
+  <<interface>>
+  +str name
+  +bool requires_credentials
+  +int interval
+  +configured() bool
+  +status() dict
+  +poll(brand, keywords) list~RawMention~
+}
+
+class App {
+  +YouTubeService youtube
+  +InstagramService instagram
+  +dict collectors
+  +sync_youtube(channel_id, force) int
+  +sync_instagram(ig_user_id, force) int
+  +publish(raw) None
+}
+
+class Database {
+  +query(sql, params) list
+  +execute(sql, params) int
+  +insert_mentions(rows) int
+  +existing_ids(ids) set
+}
+
+class Processor {
+  +process_batch(messages) list~Mention~
+}
+
+class Mention {
+  +str id
+  +str source
+  +str external_id
+  +str author
+  +str text
+  +str sentiment
+  +float confidence
+  +int engagement
+  +str parent_id
+  +str origin
+}
+
+%% ===== YouTube =====
+class YouTubeChannelCollector {
+  +str name = "youtube"
+  +YouTubeService service
+  +int interval = 300
+  +configured() bool
+  +status() dict
+  +poll(brand, keywords) list
+}
+
+class YouTubeService {
+  +Database db
+  +Settings settings
+  +bool configured
+  +str api
+  +resolve(query) dict
+  +save_channel(row) dict
+  +list_channels() list
+  +get_channel(channel_id) dict
+  +remove_channel(channel_id, delete_data) bool
+  +videos(channel_id, limit) list
+  +sync_channel(channel, force) list~RawMention~
+  +sync_all(force) list~RawMention~
+  -_get(client, path, params) dict
+  -_channel_row(item) dict
+  -_video_comments(client, video_id) list
+}
+
+class YouTubeChannel {
+  +str channel_id
+  +str handle
+  +str title
+  +str thumbnail_url
+  +int subscriber_count
+  +int video_count
+  +int view_count
+  +str uploads_playlist
+  +str last_sync_at
+  +str last_error
+}
+
+class YouTubeVideo {
+  +str id
+  +str channel_id
+  +str title
+  +str thumbnail_url
+  +str published_at
+  +int view_count
+  +int like_count
+  +int comment_count
+  +int synced_comments
+}
+
+class YouTubeError {
+  <<exception>>
+}
+
+class YouTubeDataAPI {
+  <<external>>
+  +channels.list() 1 unit
+  +playlistItems.list() 1 unit
+  +videos.list() 1 unit
+  +commentThreads.list() 1 unit
+}
+
+%% ===== Instagram =====
+class InstagramCollector {
+  +str name = "instagram"
+  +InstagramService service
+  +int interval = 180
+  +configured() bool
+  +status() dict
+  +poll(brand, keywords) list
+}
+
+class InstagramService {
+  +Database db
+  +Settings settings
+  +TokenCipher cipher
+  +dict states
+  +bool app_configured
+  +str redirect_uri
+  +authorization_url() str
+  +consume_state(state) bool
+  +complete_login(code) dict
+  +list_accounts() list
+  +get_account(ig_user_id) dict
+  +disconnect(ig_user_id, delete_data) bool
+  +media(ig_user_id, limit) list
+  +sync_account(account, force) list~RawMention~
+  +sync_all(force) list~RawMention~
+  -_refresh_if_needed(client, account, token) str
+  -_paged(client, url, token, params) list
+}
+
+class TokenCipher {
+  +Fernet fernet
+  +encrypt(value) str
+  +decrypt(value) str
+}
+
+class InstagramAccount {
+  +str ig_user_id
+  +str username
+  +str account_type
+  +int followers_count
+  +int media_count
+  +str access_token «encrypted»
+  +str token_expires_at
+  +str token_refreshed_at
+  +str last_sync_at
+  +str last_error
+}
+
+class InstagramMedia {
+  +str id
+  +str ig_user_id
+  +str caption
+  +str media_type
+  +str permalink
+  +str timestamp
+  +int like_count
+  +int comments_count
+  +int synced_comments
+}
+
+class TunnelManager {
+  +str url
+  +str redirect_uri
+  +start() dict
+  +stop() dict
+  +restore() None
+}
+
+class InstagramError {
+  <<exception>>
+}
+
+class InstagramGraphAPI {
+  <<external>>
+  +oauth/authorize
+  +oauth/access_token
+  +me?fields=...
+  +me/media
+  +media/comments
+}
+
+%% ===== relationships =====
+Collector <|.. YouTubeChannelCollector
+Collector <|.. InstagramCollector
+App o-- YouTubeChannelCollector
+App o-- InstagramCollector
+App *-- YouTubeService
+App *-- InstagramService
+App *-- TunnelManager
+
+YouTubeChannelCollector --> YouTubeService : delegates poll()
+InstagramCollector --> InstagramService : delegates poll()
+
+YouTubeService ..> YouTubeDataAPI : HTTPS + API key
+InstagramService ..> InstagramGraphAPI : OAuth 2.0 + bearer token
+InstagramService *-- TokenCipher : encrypts token
+InstagramService ..> TunnelManager : needs https redirect
+
+YouTubeService --> Database
+InstagramService --> Database
+YouTubeService ..> YouTubeError : raises
+InstagramService ..> InstagramError : raises
+
+YouTubeService --> YouTubeChannel : stores
+YouTubeChannel "1" *-- "0..n" YouTubeVideo
+InstagramService --> InstagramAccount : stores
+InstagramAccount "1" *-- "0..n" InstagramMedia
+
+YouTubeService ..> Processor : publishes
+InstagramService ..> Processor : publishes
+Processor ..> Mention : creates
+YouTubeVideo "1" o-- "0..n" Mention : parent_id
+InstagramMedia "1" o-- "0..n" Mention : parent_id

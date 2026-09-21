@@ -10,6 +10,7 @@ snapshot of the running system (9,984 analysed mentions, YouTube channel @cristi
 | `01-class-diagram.png/.svg` | Full class diagram — 28 classes (tall; best for the report) |
 | `01a-class-core-pipeline.png/.svg` | Part 1 for slides: App, storage, message bus, NLP pipeline |
 | `01b-class-sources-analytics.png/.svg` | Part 2 for slides: collectors, services, analytics, entities |
+| `04-class-diagram-social-integrations.png/.svg` | Class diagram focused on the YouTube and Instagram integrations (collectors, services, entities, external APIs) |
 | `02-object-diagram.png/.svg` | Runtime snapshot with real values |
 | `03-component-diagram.png/.svg` | Component view, vertical layout (fits a slide) |
 | `03-component-diagram-wide.png/.svg` | Same diagram, horizontal (good for a poster or handout) |
