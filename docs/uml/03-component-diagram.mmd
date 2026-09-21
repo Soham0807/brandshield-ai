@@ -1,0 +1,70 @@
+flowchart TB
+  subgraph PRES["Presentation Layer"]
+    SPA["React SPA<br/>Dashboard · YouTube · Mentions<br/>Analytics · Alerts · Settings"]
+  end
+
+  subgraph APP["Application Layer — FastAPI"]
+    REST["REST API<br/>/api/*"]
+    WS["WebSocket Hub<br/>/ws"]
+  end
+
+  subgraph COLLECT["Collection Layer"]
+    YTC["YouTube Collector"]
+    IGC["Instagram Collector"]
+    RSSC["News RSS Collector"]
+    APPC["App Store Collector"]
+    SIMC["Mention Simulator"]
+  end
+
+  BUS[["Message Bus<br/>Kafka / in-memory queue"]]
+
+  subgraph NLP["NLP Processing Engine"]
+    PREP["Preprocessor<br/>clean · tokenise · lemmatise<br/>language · spam"]
+    SENT["DistilBERT<br/>sentiment classifier"]
+    ASP["Aspect Extractor<br/>clause-level ABSA"]
+  end
+
+  subgraph ANA["Analytics Engine"]
+    ISO["Isolation Forest<br/>anomaly detection"]
+    PRO["Prophet<br/>forecasting"]
+    RISK["Risk Scorer"]
+  end
+
+  ALERT["Alert Engine"]
+  NOTIF["Notifier<br/>Email · Slack · Teams · SMS"]
+  DB[("SQLite<br/>mentions · alerts · channels")]
+
+  YTAPI{{"YouTube Data API v3"}}
+  IGAPI{{"Instagram Graph API"}}
+  NEWS{{"Google News RSS"}}
+  STORE{{"App Store RSS"}}
+
+  SPA -->|"HTTPS / JSON"| REST
+  WS -->|"live events"| SPA
+  REST --> ANA
+  REST --> DB
+
+  YTAPI -->|"channels · videos · comments"| YTC
+  IGAPI -->|"OAuth 2.0 · media · comments"| IGC
+  NEWS --> RSSC
+  STORE --> APPC
+
+  YTC --> BUS
+  IGC --> BUS
+  RSSC --> BUS
+  APPC --> BUS
+  SIMC --> BUS
+
+  BUS -->|"batch of 32"| PREP
+  PREP --> SENT
+  SENT --> ASP
+  ASP --> DB
+
+  DB --> ISO
+  DB --> PRO
+  ISO --> RISK
+  PRO --> RISK
+  RISK --> ALERT
+  ALERT --> NOTIF
+  ALERT --> WS
+  ALERT --> DB

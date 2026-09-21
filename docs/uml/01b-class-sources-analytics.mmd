@@ -1,0 +1,148 @@
+classDiagram
+direction LR
+
+class Collector {
+  <<interface>>
+  +configured() bool
+  +status() dict
+  +poll(brand, keywords) list
+}
+
+class BaseCollector {
+  +Settings settings
+  +float last_poll
+  +int last_count
+  +str last_error
+  +int total
+}
+
+class RssCollector
+
+class RedditCollector
+
+class TwitterCollector
+
+class AppStoreCollector
+
+class YouTubeChannelCollector
+
+class InstagramCollector
+
+class YouTubeService {
+  +Database db
+  +bool configured
+  +resolve(query) dict
+  +save_channel(row) dict
+  +list_channels() list
+  +sync_channel(channel, force) list
+  +sync_all(force) list
+}
+
+class InstagramService {
+  +TokenCipher cipher
+  +authorization_url() str
+  +complete_login(code) dict
+  +sync_account(account, force) list
+}
+
+class TokenCipher {
+  +encrypt(value) str
+  +decrypt(value) str
+}
+
+class AnalyticsService {
+  +dict latest
+  +dict forecast_data
+  +overview(hours) dict
+  +trends(hours, bucket) dict
+  +anomalies(hours) dict
+  +compute_snapshot() dict
+  +refresh_forecast() dict
+}
+
+class AnomalyDetector {
+  <<utility>>
+  +bucketize(df, minutes) DataFrame
+  +detect_anomalies(buckets, contamination) DataFrame
+  +summarise_anomalies(data) list
+}
+
+class Forecaster {
+  <<utility>>
+  +forecast(series, horizon) dict
+}
+
+class RiskScorer {
+  <<utility>>
+  +compute_risk(anomalies, forecast, aspects) dict
+}
+
+class AlertEngine {
+  +raise_alert(severity, type, title) dict
+  +evaluate(snapshot, forecast) list
+  +check_mentions(mentions) None
+  +set_status(alert_id, status) bool
+}
+
+class Notifier {
+  +channels_status() dict
+  +send(alert, prefs, brand) dict
+}
+
+class Mention {
+  +str id
+  +str source
+  +str author
+  +str text
+  +str language
+  +str sentiment
+  +float confidence
+  +float score
+  +list aspects
+  +bool is_spam
+  +int engagement
+  +str parent_id
+}
+
+class Alert {
+  +int id
+  +str severity
+  +str type
+  +str title
+  +str status
+}
+
+class YouTubeChannel {
+  +str channel_id
+  +str handle
+  +int subscriber_count
+  +int video_count
+}
+
+class YouTubeVideo {
+  +str id
+  +str title
+  +int view_count
+  +int comment_count
+  +int synced_comments
+}
+
+Collector <|.. BaseCollector
+BaseCollector <|-- RssCollector
+BaseCollector <|-- RedditCollector
+BaseCollector <|-- TwitterCollector
+BaseCollector <|-- AppStoreCollector
+Collector <|.. YouTubeChannelCollector
+Collector <|.. InstagramCollector
+YouTubeChannelCollector --> YouTubeService
+InstagramCollector --> InstagramService
+InstagramService *-- TokenCipher
+AnalyticsService --> AnomalyDetector
+AnalyticsService --> Forecaster
+AnalyticsService --> RiskScorer
+AnalyticsService --> AlertEngine : snapshot
+AlertEngine --> Notifier
+AlertEngine ..> Alert : creates
+YouTubeService --> YouTubeChannel
+YouTubeChannel "1" *-- "0..n" YouTubeVideo
+YouTubeVideo "1" o-- "0..n" Mention

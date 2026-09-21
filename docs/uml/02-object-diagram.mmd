@@ -1,0 +1,81 @@
+classDiagram
+direction TB
+
+class appObj["app : App"] {
+  brand_name = "UR - Cristiano"
+  mentions_stored = 9984
+  bus = MemoryBus
+  model_state = "ready"
+}
+
+class ytSvc["ytService : YouTubeService"] {
+  configured = true
+  channels_tracked = 1
+}
+
+class chan["cristiano : YouTubeChannel"] {
+  channel_id = "UCtxD0x6AuNNqdXO9Wp5GHew"
+  handle = "@cristiano"
+  subscriber_count = 83300000
+  video_count = 146
+}
+
+class vid["video : YouTubeVideo"] {
+  id = "b4db8i10rJ8"
+  title = "Thank you, Toronto."
+  view_count = 4612100
+  comment_count = 43863
+  synced_comments = 43863
+}
+
+class mention["m1 : Mention"] {
+  source = "youtube"
+  author = "@IbrahimGaming1962"
+  language = "en"
+  sentiment = "positive"
+  confidence = 0.9332
+  score = 0.8904
+  engagement = 4
+  is_spam = false
+}
+
+class model["model : SentimentModel"] {
+  model_name = "tabularisai/multilingual-sentiment-analysis"
+  batch_size = 32
+  avg_inference_ms = 9.1
+}
+
+class bus["bus : MemoryBus"] {
+  depth = 0
+  published = 9984
+}
+
+class analytics["analytics : AnalyticsService"] {
+  positive = 3389
+  neutral = 4147
+  negative = 2448
+  risk_level = "low"
+}
+
+class engine["alerts : AlertEngine"] {
+  open_alerts = 5
+}
+
+class alert["a18 : Alert"] {
+  id = 18
+  severity = "high"
+  type = "viral_negative"
+  status = "open"
+}
+
+appObj --> ytSvc
+appObj --> model
+appObj --> bus
+appObj --> analytics
+appObj --> engine
+ytSvc --> chan
+chan --> vid
+vid --> mention
+model ..> mention : classified
+engine --> alert
+analytics --> engine : snapshot

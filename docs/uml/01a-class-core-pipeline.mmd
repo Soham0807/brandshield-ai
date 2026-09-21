@@ -1,0 +1,120 @@
+classDiagram
+direction LR
+
+class App {
+  +Settings settings
+  +Database db
+  +RuntimeConfig runtime
+  +SentimentModel model
+  +Processor processor
+  +MessageBus bus
+  +dict collectors
+  +start() None
+  +stop() None
+  +publish(raw) None
+  +sync_youtube(channel_id, force) int
+  +public_status() dict
+}
+
+class Database {
+  +Path path
+  +query(sql, params) list
+  +execute(sql, params) int
+  +insert_mentions(rows) int
+  +existing_ids(ids) set
+  +get_setting(key) Any
+}
+
+class RuntimeConfig {
+  +dict value
+  +get() dict
+  +update(patch) dict
+  +reset() dict
+}
+
+class MessageBus {
+  <<interface>>
+  +publish(message) None
+  +batches(max_batch, max_wait) AsyncIterator
+  +depth() int
+}
+
+class MemoryBus {
+  +Queue queue
+  +int published
+}
+
+class KafkaBus {
+  +str bootstrap_servers
+  +str topic
+}
+
+class Processor {
+  +SentimentModel model
+  +AspectExtractor aspects
+  +PipelineMetrics metrics
+  +analyze(raws) list
+  +process_batch(messages) list
+  +run(bus) None
+}
+
+class TextPreprocessor {
+  <<utility>>
+  +preprocess(text) PreparedText
+  +detect_spam(original, clean) str
+  +detect_language(text) str
+}
+
+class PreparedText {
+  +str clean
+  +str model_text
+  +list tokens
+  +list lemmas
+  +str language
+  +bool is_spam
+  +str spam_reason
+}
+
+class SentimentModel {
+  +str model_name
+  +int batch_size
+  +float avg_inference_ms
+  +load() None
+  +predict(texts) list
+}
+
+class AspectExtractor {
+  +dict compiled
+  +find(text) list
+  +extract_clauses(text) dict
+  +analyze_batch(texts, overall, model) list
+}
+
+class PipelineMetrics {
+  +int processed
+  +int stored
+  +record_batch(size, stored, seconds) None
+  +snapshot(queue_depth, model) dict
+}
+
+class Hub {
+  +int client_count
+  +connect(ws) None
+  +broadcast(event_type, data) None
+}
+
+App *-- Database
+App *-- RuntimeConfig
+App *-- Processor
+App *-- MessageBus
+App *-- Hub
+App *-- PipelineMetrics
+MessageBus <|.. MemoryBus
+MessageBus <|.. KafkaBus
+Processor --> SentimentModel
+Processor --> AspectExtractor
+Processor --> TextPreprocessor
+Processor --> Database
+Processor --> PipelineMetrics
+TextPreprocessor ..> PreparedText : creates
+AspectExtractor --> SentimentModel

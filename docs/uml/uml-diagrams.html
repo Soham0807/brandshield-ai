@@ -1,0 +1,780 @@
+<!doctype html>
+<html><head><meta charset='utf-8'>
+<title>BrandShield AI UML Set</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --paper: #f5f7f8;
+    --plate: #ffffff;
+    --ink: #101820;
+    --ink-soft: #3d4a57;
+    --muted: #6b7885;
+    --line: #d5dde2;
+    --line-soft: #e7edf0;
+    --accent: #0f6b74;
+    --accent-soft: #e2f0f1;
+    --amber: #9a5b09;
+    --amber-soft: #fbf0df;
+    --max: 1180px;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink-soft);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .wrap {
+    max-width: var(--max);
+    margin-inline: auto;
+    padding-inline: 20px;
+    padding-block: 40px 64px;
+  }
+
+  /* ---------- header ---------- */
+  header.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4.4vw, 42px);
+    line-height: 1.1;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+    text-wrap: balance;
+    letter-spacing: -.02em;
+  }
+
+  .lede { margin: 0; max-width: 62ch; color: var(--ink-soft); }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 32px;
+    margin-top: 22px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+  }
+  .meta div { display: flex; flex-direction: column; gap: 2px; }
+  .meta dt { color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-size: 10px; }
+  .meta dd { margin: 0; color: var(--ink); font-weight: 500; }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 52px; }
+
+  .sec-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+
+  .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid #bfdcde;
+    padding: 3px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  h2 {
+    font-size: clamp(20px, 2.6vw, 26px);
+    color: var(--ink);
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  .purpose { margin: 10px 0 0; max-width: 72ch; }
+
+  .plate {
+    margin-top: 20px;
+    background: var(--plate);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 22px 18px;
+    overflow-x: auto;
+  }
+  .plate pre.mermaid { margin: 0; min-width: 0; text-align: center; }
+
+  .plate-caption {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ---------- notes ---------- */
+  .notes { margin-top: 20px; display: grid; gap: 10px; }
+  .note {
+    display: grid;
+    grid-template-columns: 148px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .note:last-child { border-bottom: 0; padding-bottom: 0; }
+  .note b {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: .01em;
+    padding-top: 1px;
+  }
+  .note span { font-size: 14px; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .88em;
+    background: #eef3f5;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  .callout {
+    margin-top: 22px;
+    background: var(--amber-soft);
+    border-left: 3px solid var(--amber);
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+  .callout b { color: var(--amber); }
+
+  footer {
+    margin-top: 60px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer h3 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 28px; }
+  .legend div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; }
+  .legend em {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-style: normal;
+    color: var(--ink);
+  }
+
+  @media (max-width: 560px) {
+    .note { grid-template-columns: 1fr; gap: 3px; }
+    .legend div { grid-template-columns: 78px 1fr; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">Unified Modeling Language · Structural Views</p>
+    <h1>BrandShield AI — UML Diagram Set</h1>
+    <p class="lede">
+      Class, object and component views of the Real-Time Brand Risk &amp; Sentiment Intelligence System.
+      Every class name, attribute and method below is taken from the implemented source code; the object
+      diagram shows a live snapshot of the running system.
+    </p>
+    <dl class="meta">
+      <div><dt>Project</dt><dd>BrandShield AI</dd></div>
+      <div><dt>Team</dt><dd>PID 02 · T.Y. AIDS</dd></div>
+      <div><dt>Institute</dt><dd>K.K. Wagh IEER, Nashik</dd></div>
+      <div><dt>Backend</dt><dd>Python 3.14 · FastAPI</dd></div>
+      <div><dt>Classes modelled</dt><dd>28</dd></div>
+    </dl>
+  </header>
+
+  <!-- ================= CLASS DIAGRAM ================= -->
+  <section>
+    <div class="sec-head">
+      <span class="tag">Diagram 1</span>
+      <h2>Class Diagram</h2>
+    </div>
+    <p class="purpose">
+      Static structure of the backend: the <code>App</code> orchestrator composes the storage, streaming,
+      NLP, analytics and alerting subsystems, while two interfaces — <code>Collector</code> and
+      <code>MessageBus</code> — keep data sources and transport interchangeable.
+    </p>
+
+    <div class="plate">
+<pre class="mermaid">
+classDiagram
+direction LR
+
+class App {
+  +Settings settings
+  +Database db
+  +RuntimeConfig runtime
+  +SentimentModel model
+  +Processor processor
+  +MessageBus bus
+  +dict collectors
+  +start() None
+  +stop() None
+  +publish(raw) None
+  +sync_youtube(channel_id, force) int
+  +public_status() dict
+}
+
+class Database {
+  +Path path
+  +query(sql, params) list
+  +execute(sql, params) int
+  +insert_mentions(rows) int
+  +existing_ids(ids) set
+  +get_setting(key) Any
+}
+
+class RuntimeConfig {
+  +dict value
+  +get() dict
+  +update(patch) dict
+  +reset() dict
+}
+
+class Collector {
+  &lt;&lt;interface&gt;&gt;
+  +configured() bool
+  +status() dict
+  +poll(brand, keywords) list
+}
+
+class BaseCollector {
+  +Settings settings
+  +float last_poll
+  +int last_count
+  +str last_error
+  +int total
+}
+
+class RssCollector
+class RedditCollector
+class TwitterCollector
+class AppStoreCollector
+class YouTubeChannelCollector
+class InstagramCollector
+
+class YouTubeService {
+  +Database db
+  +bool configured
+  +resolve(query) dict
+  +save_channel(row) dict
+  +list_channels() list
+  +sync_channel(channel, force) list
+  +sync_all(force) list
+}
+
+class InstagramService {
+  +TokenCipher cipher
+  +authorization_url() str
+  +complete_login(code) dict
+  +sync_account(account, force) list
+}
+
+class TokenCipher {
+  +encrypt(value) str
+  +decrypt(value) str
+}
+
+class MessageBus {
+  &lt;&lt;interface&gt;&gt;
+  +publish(message) None
+  +batches(max_batch, max_wait) AsyncIterator
+  +depth() int
+}
+class MemoryBus {
+  +Queue queue
+  +int published
+}
+class KafkaBus {
+  +str bootstrap_servers
+  +str topic
+}
+
+class Processor {
+  +SentimentModel model
+  +AspectExtractor aspects
+  +PipelineMetrics metrics
+  +analyze(raws) list
+  +process_batch(messages) list
+  +run(bus) None
+}
+
+class TextPreprocessor {
+  &lt;&lt;utility&gt;&gt;
+  +preprocess(text) PreparedText
+  +detect_spam(original, clean) str
+  +detect_language(text) str
+}
+
+class PreparedText {
+  +str clean
+  +str model_text
+  +list tokens
+  +list lemmas
+  +str language
+  +bool is_spam
+  +str spam_reason
+}
+
+class SentimentModel {
+  +str model_name
+  +int batch_size
+  +float avg_inference_ms
+  +load() None
+  +predict(texts) list
+}
+
+class AspectExtractor {
+  +dict compiled
+  +find(text) list
+  +extract_clauses(text) dict
+  +analyze_batch(texts, overall, model) list
+}
+
+class AnalyticsService {
+  +dict latest
+  +dict forecast_data
+  +overview(hours) dict
+  +trends(hours, bucket) dict
+  +anomalies(hours) dict
+  +compute_snapshot() dict
+  +refresh_forecast() dict
+}
+
+class AnomalyDetector {
+  &lt;&lt;utility&gt;&gt;
+  +bucketize(df, minutes) DataFrame
+  +detect_anomalies(buckets, contamination) DataFrame
+  +summarise_anomalies(data) list
+}
+
+class Forecaster {
+  &lt;&lt;utility&gt;&gt;
+  +forecast(series, horizon) dict
+}
+
+class RiskScorer {
+  &lt;&lt;utility&gt;&gt;
+  +compute_risk(anomalies, forecast, aspects) dict
+}
+
+class AlertEngine {
+  +raise_alert(severity, type, title) dict
+  +evaluate(snapshot, forecast) list
+  +check_mentions(mentions) None
+  +set_status(alert_id, status) bool
+}
+
+class Notifier {
+  +channels_status() dict
+  +send(alert, prefs, brand) dict
+}
+
+class Hub {
+  +int client_count
+  +connect(ws) None
+  +broadcast(event_type, data) None
+}
+
+class PipelineMetrics {
+  +int processed
+  +int stored
+  +record_batch(size, stored, seconds) None
+  +snapshot(queue_depth, model) dict
+}
+
+class Mention {
+  +str id
+  +str source
+  +str author
+  +str text
+  +str language
+  +str sentiment
+  +float confidence
+  +float score
+  +list aspects
+  +bool is_spam
+  +int engagement
+  +str parent_id
+}
+
+class Alert {
+  +int id
+  +str severity
+  +str type
+  +str title
+  +str status
+}
+
+class YouTubeChannel {
+  +str channel_id
+  +str handle
+  +int subscriber_count
+  +int video_count
+}
+
+class YouTubeVideo {
+  +str id
+  +str title
+  +int view_count
+  +int comment_count
+  +int synced_comments
+}
+
+App *-- Database
+App *-- RuntimeConfig
+App *-- Processor
+App *-- AnalyticsService
+App *-- AlertEngine
+App *-- Hub
+App *-- PipelineMetrics
+App *-- MessageBus
+App *-- YouTubeService
+App *-- InstagramService
+App o-- Collector
+
+Collector &lt;|.. BaseCollector
+BaseCollector &lt;|-- RssCollector
+BaseCollector &lt;|-- RedditCollector
+BaseCollector &lt;|-- TwitterCollector
+BaseCollector &lt;|-- AppStoreCollector
+Collector &lt;|.. YouTubeChannelCollector
+Collector &lt;|.. InstagramCollector
+
+YouTubeChannelCollector --&gt; YouTubeService
+InstagramCollector --&gt; InstagramService
+InstagramService *-- TokenCipher
+
+MessageBus &lt;|.. MemoryBus
+MessageBus &lt;|.. KafkaBus
+
+Processor --&gt; SentimentModel
+Processor --&gt; AspectExtractor
+Processor --&gt; TextPreprocessor
+Processor --&gt; Database
+TextPreprocessor ..&gt; PreparedText : creates
+AspectExtractor --&gt; SentimentModel
+Processor ..&gt; Mention : creates
+
+AnalyticsService --&gt; AnomalyDetector
+AnalyticsService --&gt; Forecaster
+AnalyticsService --&gt; RiskScorer
+AnalyticsService --&gt; Database
+
+AlertEngine --&gt; Notifier
+AlertEngine --&gt; Hub
+AlertEngine ..&gt; Alert : creates
+
+YouTubeService --&gt; YouTubeChannel
+YouTubeChannel "1" *-- "0..n" YouTubeVideo
+YouTubeVideo "1" o-- "0..n" Mention
+</pre>
+    </div>
+    <div class="plate-caption">
+      <span>Fig. 1 — Class diagram (28 classes, 2 interfaces, 2 utility modules)</span>
+      <span>Source: backend/app/</span>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <b>Composition</b>
+        <span><code>App</code> creates and owns the database, bus, processor, analytics, alert engine and
+        WebSocket hub — they are constructed in its <code>__init__</code> and destroyed with it.</span>
+      </div>
+      <div class="note">
+        <b>Realization</b>
+        <span>Six collectors realize the <code>Collector</code> interface, so adding a data source needs no
+        change to <code>App</code> — it only implements <code>poll()</code>.</span>
+      </div>
+      <div class="note">
+        <b>Strategy pattern</b>
+        <span><code>MemoryBus</code> and <code>KafkaBus</code> are interchangeable implementations of
+        <code>MessageBus</code>; the system falls back to the in-memory queue when Kafka is unavailable.</span>
+      </div>
+      <div class="note">
+        <b>Dependency</b>
+        <span>Dashed arrows mark object creation: <code>Processor</code> produces <code>Mention</code>
+        objects, <code>AlertEngine</code> produces <code>Alert</code> objects.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= OBJECT DIAGRAM ================= -->
+  <section>
+    <div class="sec-head">
+      <span class="tag">Diagram 2</span>
+      <h2>Object Diagram</h2>
+    </div>
+    <p class="purpose">
+      A runtime snapshot of the deployed system while monitoring a live YouTube channel. Every value shown
+      is real data read from the running instance at the time of capture.
+    </p>
+
+    <div class="plate">
+<pre class="mermaid">
+classDiagram
+direction TB
+
+class appObj["app : App"] {
+  brand_name = "UR - Cristiano"
+  mentions_stored = 9984
+  bus = MemoryBus
+  model_state = "ready"
+}
+
+class ytSvc["ytService : YouTubeService"] {
+  configured = true
+  channels_tracked = 1
+}
+
+class chan["cristiano : YouTubeChannel"] {
+  channel_id = "UCtxD0x6AuNNqdXO9Wp5GHew"
+  handle = "@cristiano"
+  subscriber_count = 83300000
+  video_count = 146
+}
+
+class vid["video : YouTubeVideo"] {
+  id = "b4db8i10rJ8"
+  title = "Thank you, Toronto."
+  view_count = 4612100
+  comment_count = 43863
+  synced_comments = 43863
+}
+
+class mention["m1 : Mention"] {
+  source = "youtube"
+  author = "@IbrahimGaming1962"
+  language = "en"
+  sentiment = "positive"
+  confidence = 0.9332
+  score = 0.8904
+  engagement = 4
+  is_spam = false
+}
+
+class model["model : SentimentModel"] {
+  model_name = "tabularisai/multilingual-sentiment-analysis"
+  batch_size = 32
+  avg_inference_ms = 9.1
+}
+
+class bus["bus : MemoryBus"] {
+  depth = 0
+  published = 9984
+}
+
+class analytics["analytics : AnalyticsService"] {
+  positive = 3389
+  neutral = 4147
+  negative = 2448
+  risk_level = "low"
+}
+
+class engine["alerts : AlertEngine"] {
+  open_alerts = 5
+}
+
+class alert["a18 : Alert"] {
+  id = 18
+  severity = "high"
+  type = "viral_negative"
+  status = "open"
+}
+
+appObj --&gt; ytSvc
+appObj --&gt; model
+appObj --&gt; bus
+appObj --&gt; analytics
+appObj --&gt; engine
+ytSvc --&gt; chan
+chan --&gt; vid
+vid --&gt; mention
+model ..&gt; mention : classified
+engine --&gt; alert
+analytics --&gt; engine : snapshot
+</pre>
+    </div>
+    <div class="plate-caption">
+      <span>Fig. 2 — Object diagram: instance snapshot with live values</span>
+      <span>Captured from the running system · 9,984 analysed mentions</span>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <b>Instance form</b>
+        <span>Each box is <code>objectName : ClassName</code> with its attribute values at one moment in
+        time — the object diagram instantiates the class diagram above.</span>
+      </div>
+      <div class="note">
+        <b>Traceability</b>
+        <span>The chain <code>channel → video → mention</code> shows one real comment on Cristiano Ronaldo's
+        channel, classified as positive with 93.3% confidence.</span>
+      </div>
+      <div class="note">
+        <b>Aggregated state</b>
+        <span><code>analytics</code> holds the computed distribution of all 9,984 mentions; the engine has
+        raised 5 open alerts, one of which is shown as object <code>a18</code>.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= COMPONENT DIAGRAM ================= -->
+  <section>
+    <div class="sec-head">
+      <span class="tag">Diagram 3</span>
+      <h2>Component Diagram</h2>
+    </div>
+    <p class="purpose">
+      Deployable units and the interfaces between them. The system is layered: collection is decoupled from
+      processing by the message bus, and every external platform is reached through a read-only API adapter.
+    </p>
+
+    <div class="plate">
+<pre class="mermaid">
+flowchart LR
+  subgraph PRES["Presentation Layer"]
+    SPA["React SPA&lt;br/&gt;Dashboard · YouTube · Mentions&lt;br/&gt;Analytics · Alerts · Settings"]
+  end
+
+  subgraph APP["Application Layer — FastAPI"]
+    REST["REST API&lt;br/&gt;/api/*"]
+    WS["WebSocket Hub&lt;br/&gt;/ws"]
+  end
+
+  subgraph COLLECT["Collection Layer"]
+    YTC["YouTube Collector"]
+    IGC["Instagram Collector"]
+    RSSC["News RSS Collector"]
+    APPC["App Store Collector"]
+    SIMC["Mention Simulator"]
+  end
+
+  BUS[["Message Bus&lt;br/&gt;Kafka / in-memory queue"]]
+
+  subgraph NLP["NLP Processing Engine"]
+    PREP["Preprocessor&lt;br/&gt;clean · tokenise · lemmatise&lt;br/&gt;language · spam"]
+    SENT["DistilBERT&lt;br/&gt;sentiment classifier"]
+    ASP["Aspect Extractor&lt;br/&gt;clause-level ABSA"]
+  end
+
+  subgraph ANA["Analytics Engine"]
+    ISO["Isolation Forest&lt;br/&gt;anomaly detection"]
+    PRO["Prophet&lt;br/&gt;forecasting"]
+    RISK["Risk Scorer"]
+  end
+
+  ALERT["Alert Engine"]
+  NOTIF["Notifier&lt;br/&gt;Email · Slack · Teams · SMS"]
+  DB[("SQLite&lt;br/&gt;mentions · alerts · channels")]
+
+  YTAPI{{"YouTube Data API v3"}}
+  IGAPI{{"Instagram Graph API"}}
+  NEWS{{"Google News RSS"}}
+  STORE{{"App Store RSS"}}
+
+  SPA -->|"HTTPS / JSON"| REST
+  WS -->|"live events"| SPA
+  REST --> ANA
+  REST --> DB
+
+  YTAPI -->|"channels · videos · comments"| YTC
+  IGAPI -->|"OAuth 2.0 · media · comments"| IGC
+  NEWS --> RSSC
+  STORE --> APPC
+
+  YTC --> BUS
+  IGC --> BUS
+  RSSC --> BUS
+  APPC --> BUS
+  SIMC --> BUS
+
+  BUS -->|"batch of 32"| PREP
+  PREP --> SENT
+  SENT --> ASP
+  ASP --> DB
+
+  DB --> ISO
+  DB --> PRO
+  ISO --> RISK
+  PRO --> RISK
+  RISK --> ALERT
+  ALERT --> NOTIF
+  ALERT --> WS
+  ALERT --> DB
+</pre>
+    </div>
+    <div class="plate-caption">
+      <span>Fig. 3 — Component diagram with provided / required interfaces</span>
+      <span>4 external APIs · 5 collectors · 1 shared model instance</span>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <b>Decoupling</b>
+        <span>Collectors never call the NLP engine directly — they publish to the message bus, so a slow API
+        or a burst of comments cannot stall classification.</span>
+      </div>
+      <div class="note">
+        <b>Batching</b>
+        <span>The processor consumes up to 32 messages per batch, which is what keeps inference at ~9 ms per
+        comment on CPU.</span>
+      </div>
+      <div class="note">
+        <b>Shared database</b>
+        <span>SQLite is the integration point between processing and analytics; the analytics engine reads
+        the same store the processor writes to.</span>
+      </div>
+      <div class="note">
+        <b>Push channel</b>
+        <span>Alerts reach the dashboard through the WebSocket hub, so the UI updates without polling.</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>For your viva:</b> the three diagrams answer three different questions — the class diagram shows
+      <em>what the system is made of</em>, the object diagram shows <em>what it looks like while running</em>,
+      and the component diagram shows <em>how the parts are deployed and connected</em>.
+    </div>
+  </section>
+
+  <footer>
+    <h3>UML Notation Used</h3>
+    <div class="legend">
+      <div><em>◆——</em><span>Composition — whole owns the part</span></div>
+      <div><em>◇——</em><span>Aggregation — whole references the part</span></div>
+      <div><em>——▷</em><span>Generalization — inheritance</span></div>
+      <div><em>- - -▷</em><span>Realization — implements an interface</span></div>
+      <div><em>- - -&gt;</em><span>Dependency — uses or creates</span></div>
+      <div><em>[[ ]]</em><span>Component with provided interface</span></div>
+      <div><em>(( ))</em><span>Persistent data store</span></div>
+      <div><em>⬡</em><span>External system / actor</span></div>
+    </div>
+  </footer>
+</div>
+
+<script type='module'>
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: true, theme: 'base', themeVariables: { primaryColor: '#f2f7f8', primaryBorderColor: '#0f6b74', lineColor: '#4a5b66', fontSize: '15px' } });
+</script>
+</head><body></body></html>
