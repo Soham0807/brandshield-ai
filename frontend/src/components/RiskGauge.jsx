@@ -8,21 +8,21 @@ export default function RiskGauge({ score = 0, level = 'low', size = 180 }) {
   return (
     <div className="flex flex-col items-center">
       <svg width={size} height={size * 0.6} viewBox="0 0 180 105" role="img" aria-label={`Risk ${score} of 100`}>
-        <path d="M 20 95 A 70 70 0 0 1 160 95" fill="none" stroke="#2c2521" strokeWidth="14" strokeLinecap="round" />
+        <path d="M 20 95 A 70 70 0 0 1 160 95" fill="none" style={{ stroke: 'var(--color-ink-800)' }} strokeWidth="12" strokeLinecap="butt" />
         <path
           d="M 20 95 A 70 70 0 0 1 160 95"
           fill="none"
           stroke={color}
-          strokeWidth="14"
-          strokeLinecap="round"
+          strokeWidth="12"
+          strokeLinecap="butt"
           strokeDasharray={`${circumference * progress} ${circumference}`}
           style={{ transition: 'stroke-dasharray .6s ease, stroke .6s ease' }}
         />
-        <text x="90" y="80" textAnchor="middle" fill="#fafaf9" fontSize="30" fontWeight="600">{score}</text>
-        <text x="90" y="98" textAnchor="middle" fill="#78716c" fontSize="10">out of 100</text>
+        <text x="90" y="80" textAnchor="middle" style={{ fill: 'var(--color-stone-50)' }} fontSize="34" fontWeight="600" fontFamily="Fraunces, Georgia, serif">{score}</text>
+        <text x="90" y="98" textAnchor="middle" style={{ fill: 'var(--color-stone-500)' }} fontSize="9" fontFamily="IBM Plex Mono, monospace" letterSpacing="1">OUT OF 100</text>
       </svg>
-      <span className="mt-1 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
-            style={{ color, background: `${color}22` }}>
+      <span className="mt-1 px-2 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-[.14em]"
+            style={{ color, borderTop: `2px solid ${color}` }}>
         {level} risk
       </span>
     </div>

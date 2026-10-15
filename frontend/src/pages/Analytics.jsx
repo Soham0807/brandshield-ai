@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Bar, Line } from 'react-chartjs-2'
-import { Card, Empty, Segmented, Spinner } from '../components/ui'
+import { Card, Empty, Segmented, Spinner, Tip } from '../components/ui'
+import { RISK_HELP } from '../lib/help'
 import { alpha, baseScales } from '../lib/charts'
-import { chartLabel, formatTime, num, RISK_COLORS, SENTIMENT_COLORS } from '../lib/format'
+import { chartLabel, formatTime, inkColor, num, RISK_COLORS, SENTIMENT_COLORS, windowLabel } from '../lib/format'
+import { cssVar } from '../lib/cssvar'
 import { useApi } from '../lib/hooks'
 import { useLiveEvent } from '../lib/live'
 
@@ -23,7 +25,7 @@ export default function Analytics() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">Trends, Anomalies & Forecast</h1>
+          <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Trends, Anomalies & Forecast</h1>
           <p className="text-sm text-stone-500">Isolation Forest crisis detection and Prophet time-series forecasting</p>
         </div>
         <Segmented options={[{ value: 6, label: '6h' }, { value: 24, label: '24h' }, { value: 48, label: '48h' }, { value: 72, label: '3d' }]}
@@ -61,20 +63,21 @@ export default function Analytics() {
                 <span className="text-sm uppercase text-stone-400">{risk.data.level} risk</span>
               </div>
               <div className="mt-2 text-xs text-stone-500">
-                Last hour negative share {((risk.data.recent_negative_ratio || 0) * 100).toFixed(0)}% vs baseline {((risk.data.baseline_negative_ratio || 0) * 100).toFixed(0)}%
+                {windowLabel(risk.data.recent_window_hours)} negative share {((risk.data.recent_negative_ratio || 0) * 100).toFixed(0)}% vs baseline {((risk.data.baseline_negative_ratio || 0) * 100).toFixed(0)}%
+                {risk.data.recent_mentions != null && <> · based on {risk.data.recent_mentions} mentions</>}
               </div>
               <table className="mt-4 w-full text-sm">
                 <tbody>
                   {Object.entries(risk.data.components || {}).map(([k, v]) => (
                     <tr key={k} className="border-t border-ink-700">
-                      <td className="py-2 capitalize text-stone-400">{k}</td>
+                      <td className="py-2 capitalize text-stone-400"><Tip text={RISK_HELP[k]}>{k}</Tip></td>
                       <td className="py-2 text-right text-stone-100">{v}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
               {risk.data.drivers?.length > 0 && (
-                <ul className="mt-3 space-y-1 text-xs text-amber-200/80">{risk.data.drivers.map((d) => <li key={d}>• {d}</li>)}</ul>
+                <ul className="mt-3 space-y-1 text-xs text-red-400">{risk.data.drivers.map((d) => <li key={d}>• {d}</li>)}</ul>
               )}
             </div>
           ) : <Spinner />}
@@ -87,7 +90,7 @@ export default function Analytics() {
                 <Bar
                   data={{
                     labels: Object.keys(overview.data.languages),
-                    datasets: [{ data: Object.values(overview.data.languages), backgroundColor: '#f59e0b', borderRadius: 4, barThickness: 18 }],
+                    datasets: [{ data: Object.values(overview.data.languages), backgroundColor: inkColor(), barThickness: 16 }],
                   }}
                   options={{ plugins: { legend: { display: false } }, scales: baseScales() }}
                 />
@@ -133,14 +136,14 @@ function AnomalyChart({ data, hours }) {
             tension: 0.3,
             borderWidth: 1.5,
             pointRadius: data.points.map((p) => (p.is_anomaly ? 5 : 0)),
-            pointBackgroundColor: '#fca5a5',
-            pointBorderColor: '#ef4444',
+            pointBackgroundColor: alpha(SENTIMENT_COLORS.negative, 0.45),
+            pointBorderColor: SENTIMENT_COLORS.negative,
             yAxisID: 'y',
           },
           {
             label: 'Total mentions',
             data: data.points.map((p) => p.total),
-            borderColor: '#78716c',
+            borderColor: cssVar('--color-stone-500', '#6b655b'),
             borderDash: [4, 4],
             borderWidth: 1,
             pointRadius: 0,
@@ -150,7 +153,7 @@ function AnomalyChart({ data, hours }) {
           {
             label: 'Anomaly score',
             data: data.points.map((p) => p.anomaly_score),
-            borderColor: '#f59e0b',
+            borderColor: cssVar('--color-amber-500', '#c98a1a'),
             borderWidth: 1,
             pointRadius: 0,
             tension: 0.3,
@@ -182,9 +185,9 @@ function AnomalyChart({ data, hours }) {
 }
 
 const TARGETS = {
-  sentiment: { key: 'avg_score', label: 'Sentiment index (-1 to 1)', color: '#10b981' },
-  negative_ratio: { key: 'neg_ratio', label: 'Negative share', color: '#ef4444' },
-  volume: { key: 'volume', label: 'Mentions per hour', color: '#a78bfa' },
+  sentiment: { key: 'avg_score', label: 'Sentiment index (-1 to 1)', get color() { return inkColor() } },
+  negative_ratio: { key: 'neg_ratio', label: 'Negative share', get color() { return SENTIMENT_COLORS.negative } },
+  volume: { key: 'volume', label: 'Mentions per hour', get color() { return cssVar('--color-sky-500', '#3a6f99') } },
 }
 
 function ForecastChart({ data, target }) {
@@ -203,9 +206,9 @@ function ForecastChart({ data, target }) {
       data={{
         labels,
         datasets: [
-          { label: 'Observed', data: history.map((h) => h[cfg.key]), borderColor: cfg.color, borderWidth: 1.8, pointRadius: 0, tension: 0.3 },
-          { label: 'Forecast', data: forecastLine, borderColor: '#f59e0b', borderDash: [6, 4], borderWidth: 2, pointRadius: 0, tension: 0.3 },
-          { label: 'Upper bound', data: pad(fc.points.map((p) => p.upper), history.length), borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: 'rgba(245,158,11,.14)' },
+          { label: 'Observed', data: history.map((h) => h[cfg.key]), borderColor: cfg.color, borderWidth: 1.8, pointRadius: 0, },
+          { label: 'Forecast', data: forecastLine, borderColor: SENTIMENT_COLORS.negative, borderDash: [6, 4], borderWidth: 2, pointRadius: 0, },
+          { label: 'Upper bound', data: pad(fc.points.map((p) => p.upper), history.length), borderWidth: 0, pointRadius: 0, fill: '+1', backgroundColor: alpha(SENTIMENT_COLORS.negative, 0.1) },
           { label: 'Lower bound', data: pad(fc.points.map((p) => p.lower), history.length), borderWidth: 0, pointRadius: 0, fill: false },
         ],
       }}

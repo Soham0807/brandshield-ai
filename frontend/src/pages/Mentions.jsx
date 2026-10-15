@@ -54,13 +54,13 @@ export default function Mentions() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-stone-50">Mentions</h1>
-        <p className="text-sm text-stone-500">Every collected post and comment with its sentiment, aspects and spam verdict</p>
+        <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Mentions</h1>
+        <p className="text-sm text-stone-500">Every collected post and comment with its sentiment, topics and spam verdict</p>
       </div>
 
       <Card bodyClass="p-4">
-        <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-9">
-          <div className="relative md:col-span-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="relative sm:col-span-2 lg:col-span-4 xl:col-span-7">
             <Search size={15} className="absolute left-3 top-2.5 text-stone-500" />
             <input className="input pl-9" placeholder="Search text or author…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
@@ -68,7 +68,7 @@ export default function Mentions() {
                   options={['positive', 'neutral', 'negative'].map((s) => [s, s])} />
           <Select value={filters.source} onChange={(v) => update('source', v)} placeholder="All sources"
                   options={(facets.data?.sources || []).map((s) => [s, SOURCE_LABELS[s] || s])} />
-          <Select value={filters.aspect} onChange={(v) => update('aspect', v)} placeholder="All aspects"
+          <Select value={filters.aspect} onChange={(v) => update('aspect', v)} placeholder="All topics"
                   options={(facets.data?.aspects || []).map((a) => [a, aspectLabel(a)])} />
           <Select value={filters.language} onChange={(v) => update('language', v)} placeholder="All languages"
                   options={(facets.data?.languages || []).map((l) => [l, l])} />
@@ -88,7 +88,7 @@ export default function Mentions() {
         bodyClass="pt-2"
         action={
           <label className="flex items-center gap-2 text-xs text-stone-400">
-            <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} className="accent-amber-500" />
+            <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} className="accent-red-500" />
             Live updates
           </label>
         }

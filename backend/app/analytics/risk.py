@@ -17,11 +17,41 @@ def _clamp(x: float, lo: float = 0.0, hi: float = 1.0) -> float:
     return max(lo, min(hi, x))
 
 
+MIN_RECENT_MENTIONS = 20   # judge "now" on at least this many mentions ...
+MAX_RECENT_HOURS = 24      # ... looking back no further than this
+
+
+def recent_bucket_count(anomalies: pd.DataFrame, bucket_minutes: int) -> int:
+    """Number of trailing buckets that make up the "recent" window.
+
+    Starts at one hour. For low-volume sources (e.g. a YouTube channel that gets a
+    few comments an hour) a one-hour window is often empty, which would report a
+    meaningless risk of 0, so the window is widened until it holds enough mentions.
+    Busy streams keep the one-hour window, so crisis detection is unaffected.
+    """
+    base_n = max(1, 60 // bucket_minutes)
+    max_n = max(base_n, MAX_RECENT_HOURS * 60 // bucket_minutes)
+    if anomalies.empty:
+        return base_n
+    totals = anomalies["total"].to_numpy()[::-1]
+    n = base_n
+    while n < max_n and n < len(totals) and totals[:n].sum() < MIN_RECENT_MENTIONS:
+        n += base_n
+    return min(n, max(1, len(totals) - 1))
+
+
+def _window_label(n_buckets: int, bucket_minutes: int) -> str:
+    hours = n_buckets * bucket_minutes / 60
+    return "the last hour" if hours <= 1 else f"the last {hours:.0f} h"
+
+
 def compute_risk(anomalies: pd.DataFrame, bucket_minutes: int, forecast_score: dict | None,
-                 recent_aspects: list[dict], min_negative: int) -> dict:
-    recent_n = max(1, 60 // bucket_minutes)
+                 recent_aspects: list[dict], min_negative: int, recent_n: int | None = None) -> dict:
     if anomalies.empty:
         return {"score": 0, "level": "low", "components": {}, "drivers": []}
+    if recent_n is None:
+        recent_n = recent_bucket_count(anomalies, bucket_minutes)
+    window = _window_label(recent_n, bucket_minutes)
 
     recent = anomalies.tail(recent_n)
     baseline = anomalies.iloc[:-recent_n].tail(96)
@@ -37,7 +67,7 @@ def compute_risk(anomalies: pd.DataFrame, bucket_minutes: int, forecast_score: d
     lift = recent_ratio - base_ratio
     sentiment_pts = 35 * _clamp(0.55 * recent_ratio / 0.5 + 0.45 * _clamp(lift / 0.3))
     if recent_total >= 3 and lift > 0.08:
-        drivers.append(f"Negative share is {recent_ratio:.0%} in the last hour vs {base_ratio:.0%} baseline")
+        drivers.append(f"Negative share is {recent_ratio:.0%} in {window} vs {base_ratio:.0%} baseline")
 
     # 2. Velocity of negative mentions (0-20)
     max_z = float(recent["neg_z"].max()) if "neg_z" in recent else 0.0
@@ -88,4 +118,6 @@ def compute_risk(anomalies: pd.DataFrame, bucket_minutes: int, forecast_score: d
         "drivers": drivers,
         "recent_negative_ratio": round(recent_ratio, 4),
         "baseline_negative_ratio": round(base_ratio, 4),
+        "recent_window_hours": round(recent_n * bucket_minutes / 60, 2),
+        "recent_mentions": int(recent_total),
     }

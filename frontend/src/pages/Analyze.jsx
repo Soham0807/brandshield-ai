@@ -1,33 +1,40 @@
 import { FileUp, Loader2, Wand2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, ErrorBox, SentimentBadge } from '../components/ui'
 import { api } from '../lib/api'
 import { aspectLabel, SENTIMENT_COLORS } from '../lib/format'
 
 const EXAMPLES = [
-  'The cappuccino was amazing but the delivery was 45 minutes late 😡',
-  'Staff was super friendly, loved the cozy ambience ✨',
-  'Khana bahut badhiya tha lekin bahut mehenga hai',
-  'Found a hair in my food, absolutely disgusting. Never coming back!',
-  'Get 10k free followers now!!! check my profile https://bit.ly/x1',
+  'Love the new design but the battery dies by lunch, really disappointed 😡',
+  'Customer support solved my refund in 10 minutes, super helpful team!',
+  'Product accha hai lekin price bahut zyada hai',
+  'Third order in a row delivered late. Worst service ever.',
+  'Get 10k free followers now!!! check my profile',
   'सर्विस बहुत खराब है',
-  'Is the cafe open on Sunday?',
+  'Is the new model available in India yet?',
 ]
 
 export default function Analyze() {
-  const [text, setText] = useState(EXAMPLES[0])
+  // /analyze?text=... opens with that comment already analysed (handy for demos and links)
+  const linked = new URLSearchParams(window.location.search).get('text')
+  const [text, setText] = useState(linked || EXAMPLES[0])
   const [store, setStore] = useState(false)
   const [result, setResult] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [upload, setUpload] = useState(null)
 
+  useEffect(() => {
+    if (linked) run()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function run() {
     if (!text.trim()) return
     setBusy(true)
     setError(null)
     try {
-      setResult(await api.post('/analyze', { text, store }))
+      setResult(await api.post('/analyze', { text, store: linked ? false : store }))
     } catch (e) {
       setError(e.message)
     } finally {
@@ -51,7 +58,7 @@ export default function Analyze() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-stone-50">Analyze Text</h1>
+        <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Analyze Text</h1>
         <p className="text-sm text-stone-500">Run any comment through the full NLP pipeline and inspect every step</p>
       </div>
 
@@ -69,7 +76,7 @@ export default function Analyze() {
           </div>
           <div className="mt-4 flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm text-stone-400">
-              <input type="checkbox" checked={store} onChange={(e) => setStore(e.target.checked)} className="accent-amber-500" />
+              <input type="checkbox" checked={store} onChange={(e) => setStore(e.target.checked)} className="accent-red-500" />
               Save to dashboard
             </label>
             <button className="btn-primary" onClick={run} disabled={busy || !text.trim()}>
@@ -108,7 +115,7 @@ export default function Analyze() {
                     confidence <b className="text-stone-100">{(result.sentiment.confidence * 100).toFixed(1)}%</b> ·
                     score <b className="text-stone-100">{result.sentiment.score.toFixed(3)}</b>
                     {result.sentiment.lexicon_polarity !== null && (
-                      <> · regional lexicon <b className="text-amber-300">{result.sentiment.lexicon_polarity.toFixed(2)}</b></>
+                      <> · regional lexicon <b className="text-stone-50">{result.sentiment.lexicon_polarity.toFixed(2)}</b></>
                     )}
                   </div>
                 </div>
@@ -126,7 +133,7 @@ export default function Analyze() {
                 {result.stored_id && <p className="mt-3 text-xs text-emerald-400">Saved to the dashboard ({result.stored_id}).</p>}
               </Card>
 
-              <Card title="Aspect-based sentiment" subtitle="Each clause is classified separately">
+              <Card title="Topic-level sentiment" subtitle="Each clause is classified separately">
                 {result.aspects.length ? (
                   <div className="grid gap-2 md:grid-cols-2">
                     {result.aspects.map((a) => (
@@ -151,7 +158,7 @@ export default function Analyze() {
                   <Step label="4. Stop-words removed + lemmatized" value={<Chips items={result.preprocessing.lemmas} highlight />} />
                   <Step label="5. Language detection" value={result.preprocessing.language} />
                   <Step label="6. Spam filter"
-                        value={result.preprocessing.is_spam ? <span className="text-orange-300">Spam – {result.preprocessing.spam_reason}</span> : <span className="text-emerald-400">Genuine</span>} />
+                        value={result.preprocessing.is_spam ? <span className="text-amber-400">Spam – {result.preprocessing.spam_reason}</span> : <span className="text-emerald-400">Genuine</span>} />
                 </dl>
               </Card>
             </>
@@ -176,7 +183,7 @@ function Chips({ items, highlight }) {
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((t, i) => (
-        <span key={`${t}-${i}`} className={`rounded px-1.5 py-0.5 text-xs ${highlight ? 'bg-amber-500/15 text-amber-200' : 'bg-ink-700 text-stone-300'}`}>{t}</span>
+        <span key={`${t}-${i}`} className={`rounded px-1.5 py-0.5 text-xs ${highlight ? 'bg-red-500/10 text-red-400' : 'bg-ink-800 text-stone-300'}`}>{t}</span>
       ))}
     </div>
   )

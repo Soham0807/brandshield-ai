@@ -4,6 +4,7 @@ import { Bar } from 'react-chartjs-2'
 import { Link } from 'react-router-dom'
 import { Card, Empty, Segmented, SentimentBar, Spinner, WINDOW_OPTIONS } from '../components/ui'
 import { aspectLabel, SENTIMENT_COLORS } from '../lib/format'
+import { gridColor } from '../lib/charts'
 import { useApi } from '../lib/hooks'
 
 export default function Aspects() {
@@ -14,13 +15,13 @@ export default function Aspects() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">Aspect-Based Sentiment</h1>
+          <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Topics</h1>
           <p className="text-sm text-stone-500">Which parts of the experience customers praise or complain about</p>
         </div>
         <Segmented options={WINDOW_OPTIONS} value={hours} onChange={setHours} />
       </div>
 
-      {!data ? <Spinner /> : !data.aspects.length ? <Card><Empty>No aspects detected in this window.</Empty></Card> : (
+      {!data ? <Spinner /> : !data.aspects.length ? <Card><Empty>No topics detected in this window.</Empty></Card> : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {data.aspects.map((a) => {
@@ -32,7 +33,7 @@ export default function Aspects() {
                     <span className="text-xs text-stone-500">{a.total} mentions</span>
                   </div>
                   <div className="mt-3 flex items-baseline gap-2">
-                    <span className={`text-2xl font-semibold ${a.avg_score >= 0.2 ? 'text-emerald-400' : a.avg_score <= -0.2 ? 'text-red-400' : 'text-stone-300'}`}>
+                    <span className={`num text-[30px] font-medium leading-none ${a.avg_score >= 0.2 ? 'text-emerald-400' : a.avg_score <= -0.2 ? 'text-red-400' : 'text-stone-300'}`}>
                       {a.avg_score > 0 ? '+' : ''}{a.avg_score.toFixed(2)}
                     </span>
                     <span className="text-xs text-stone-500">sentiment index</span>
@@ -53,7 +54,7 @@ export default function Aspects() {
           </div>
 
           <div className="grid gap-4 xl:grid-cols-3">
-            <Card title="Sentiment by aspect" subtitle="Share of positive / neutral / negative" className="xl:col-span-2">
+            <Card title="Sentiment by topic" subtitle="Share of positive / neutral / negative" className="xl:col-span-2">
               <div className="h-96">
                 <Bar
                   data={{
@@ -68,18 +69,18 @@ export default function Aspects() {
                   options={{
                     scales: {
                       x: { stacked: true, grid: { display: false } },
-                      y: { stacked: true, max: 100, grid: { color: 'rgba(120,104,94,.14)' }, ticks: { callback: (v) => `${v}%` } },
+                      y: { stacked: true, max: 100, grid: { color: gridColor }, ticks: { callback: (v) => `${v}%` } },
                     },
                     plugins: { legend: { position: 'top', align: 'end' }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.raw}%` } } },
                   }}
                 />
               </div>
             </Card>
-            <Card title="Top complaint terms" subtitle="Lemmatized words in negative mentions">
+            <Card title="Top complaint terms" subtitle="Words that come up most in negative comments">
               <KeywordTable words={data.negative_keywords} color="bg-red-500" />
             </Card>
           </div>
-          <Card title="Top praise terms" subtitle="Lemmatized words in positive mentions">
+          <Card title="Top praise terms" subtitle="Words that come up most in positive comments">
             <div className="grid gap-x-8 md:grid-cols-3"><KeywordTable words={data.positive_keywords} color="bg-emerald-500" /></div>
           </Card>
         </>

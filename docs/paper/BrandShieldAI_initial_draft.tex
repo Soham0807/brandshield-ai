@@ -1,0 +1,529 @@
+% BrandShield AI - initial draft for faculty review (detailed version)
+% Compile on Overleaf with pdfLaTeX. Template: IEEEtran conference mode.
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{textcomp}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+
+\begin{document}
+
+\title{BrandShield AI: A Real-Time System for Multilingual Brand Sentiment Analysis and Crisis Detection on Social Media}
+
+\author{
+\IEEEauthorblockN{Soham Borse, Tanish Bantwal, Aryan Baakle, Omsingh Rajput}
+\IEEEauthorblockA{\textit{Dept. of Artificial Intelligence and Data Science} \\
+\textit{K. K. Wagh Institute of Engineering Education and Research} \\
+Nashik, Maharashtra, India}
+\and
+\IEEEauthorblockN{Dr. Darshan Medhane (Guide)}
+\IEEEauthorblockA{\textit{Dept. of Artificial Intelligence and Data Science} \\
+\textit{K. K. Wagh Institute of Engineering Education and Research} \\
+Nashik, Maharashtra, India}
+}
+
+\maketitle
+
+\begin{abstract}
+The reputation of a brand is now largely decided by what customers say about it online. A handful of
+negative comments on YouTube, Instagram or an app store can spread to thousands of people within a
+few hours, and by the time a company notices, the damage is often done. Existing monitoring tools are
+either expensive enterprise products or simple dashboards that report overall sentiment without
+explaining its cause. They also tend to perform poorly on the Hinglish and regional-language comments
+that make up a large part of Indian social media. In this paper we present BrandShield AI, a
+real-time system that collects public brand mentions from multiple platforms, classifies their
+sentiment using a multilingual DistilBERT model supported by a code-mixed opinion lexicon, breaks each
+opinion down by aspect (such as delivery, price or service), and detects sudden negative surges using
+Isolation Forest combined with a robust statistical threshold. A brand-risk score and live alerts are
+presented through a web dashboard. Preliminary experiments on a hand-labelled set of 83 multilingual
+comments give 78.3\% accuracy and 77.6\% macro-F1, aspect detection reaches an F1 of 0.806, and the
+system processes a comment in about 9.5~ms on an ordinary laptop CPU without any GPU.
+\end{abstract}
+
+\begin{IEEEkeywords}
+sentiment analysis, brand reputation, aspect-based sentiment analysis, DistilBERT, code-mixed text,
+anomaly detection, Isolation Forest, real-time systems
+\end{IEEEkeywords}
+
+%=====================================================================
+\section{Introduction}
+
+\subsection{Background}
+Over the last decade, social media has changed the way customers interact with brands. Earlier, a
+dissatisfied customer would call a helpline or write an email that stayed private. Today the same
+customer posts a comment under a YouTube video, tags the brand on Instagram, or leaves a one-star
+review on the app store. These posts are public, they are read by other potential customers, and
+they can be shared and amplified very quickly. As a result, online conversation has become one of
+the most important signals of how a brand is actually perceived.
+
+For businesses, this conversation is useful and risky at the same time. It is useful because it is a
+free and honest source of feedback about products and services. It is risky because a small issue,
+such as a batch of late deliveries or a bug in an app update, can turn into a public crisis if it is
+not noticed and handled early.
+
+\subsection{Motivation}
+In our discussions with small business owners and from our own observation, we found that most of
+them monitor social media manually, by scrolling through comments when they have time. This does not
+scale beyond a few dozen comments a day. Commercial tools such as social listening platforms do
+exist, but their pricing is aimed at large enterprises. Even these tools mainly report what
+percentage of mentions are positive or negative, which is not enough to act on. A manager needs to
+know \textit{why} people are unhappy and \textit{whether} the situation is getting worse.
+
+\subsection{Challenges}
+Building such a system for the Indian context involves several practical challenges:
+\begin{itemize}
+\item \textbf{Code-mixed language:} Comments are frequently written in Hinglish (``delivery bahut
+late thi'') or in Hindi and Marathi using either Roman or Devanagari script. Most sentiment models
+are trained on clean English text and do not handle this well.
+\item \textbf{Mixed opinions:} A single comment often contains both praise and complaint, for
+example ``food was great but delivery was late''. Assigning one label to the whole comment hides
+useful information.
+\item \textbf{Noisy text:} Social media text contains emojis, slang, repeated characters, hashtags,
+links and a fair amount of spam.
+\item \textbf{Normal fluctuations vs. real crises:} The number of negative comments rises every day
+during busy hours simply because overall activity rises. A useful alert system must separate these
+normal peaks from genuine problems.
+\item \textbf{Limited hardware:} For the system to be affordable, it should run on a normal CPU
+without requiring a GPU server.
+\end{itemize}
+
+\subsection{Contributions}
+The main contributions of this work are:
+\begin{enumerate}
+\item A complete real-time pipeline that connects data collection, text processing, analytics and
+alerting through a message queue, so that a slow platform API does not block the rest of the system.
+\item A hybrid sentiment classifier that combines a multilingual DistilBERT model with a small
+Hinglish, Hindi and Marathi opinion lexicon and a confidence-based rule for the neutral class.
+\item Clause-level aspect-based sentiment analysis using a lexicon that the user can edit at runtime.
+\item A crisis detection method that uses the \textit{share} of negative comments rather than their
+raw count, combining Isolation Forest with a median/MAD based threshold.
+\item A preliminary evaluation on real data, including a comparison with user-given star ratings.
+\end{enumerate}
+
+\subsection{Organization of the Paper}
+Section~II reviews related work. Section~III states the problem, objectives and scope. Section~IV
+describes the proposed system in detail. Section~V covers implementation, and Section~VI presents
+preliminary results. Section~VII discusses limitations and future work, and Section~VIII concludes
+the paper.
+
+%=====================================================================
+\section{Literature Survey}
+
+\subsection{Transformer-Based Sentiment Classification}
+The transformer architecture introduced by Vaswani et al.~\cite{b11} replaced recurrent networks with
+self-attention and became the basis for most modern language models. BERT~\cite{b1} applied this
+idea to pre-training on large text corpora and showed that a single pre-trained model can be
+fine-tuned for many tasks, including sentiment classification, with state-of-the-art results.
+However, BERT is heavy for real-time use on CPU. DistilBERT~\cite{b2} uses knowledge distillation to
+reduce the model size by about 40\% and increase inference speed by about 60\%, while keeping around
+97\% of BERT's language understanding performance. For a system that has to classify a continuous
+stream of comments on modest hardware, this trade-off is very attractive.
+
+Multilingual variants trained on text from many languages, such as XLM-R~\cite{b12}, allow a single
+model to handle comments in different languages. Barbieri et al.~\cite{b10} introduced TweetEval, a
+benchmark for social media classification tasks, and showed that models adapted to tweet-like text
+perform better than general-purpose ones on short informal posts.
+
+\subsection{Lexicon-Based and Hybrid Methods}
+VADER~\cite{b3} is a rule-based sentiment analyser built specifically for social media. It uses a
+human-rated word list along with rules for punctuation, capitalisation, degree modifiers and
+negation. VADER is fast and needs no training, but it cannot understand context, sarcasm or words
+outside its dictionary. Several recent systems combine a lexicon with a machine learning model to get
+the advantages of both. In our work, the lexicon is not used as a general classifier. It is limited
+to romanised Indian-language opinion words and is used only to correct the transformer where it is
+known to be weak.
+
+\subsection{Code-Mixed Sentiment Analysis}
+Joshi et al.~\cite{b4} were among the first to study sentiment in Hindi-English code-mixed text. They
+proposed sub-word level representations to deal with spelling variations that are common when Hindi
+is written in Roman script. The SemEval-2020 Task~9~\cite{b5} on code-mixed tweets (Hinglish and
+Spanglish) showed that even strong systems lose considerable accuracy on code-mixed input compared to
+monolingual text. This confirms that code-mixing has to be handled explicitly in an Indian brand
+monitoring tool.
+
+\subsection{Aspect-Based Sentiment Analysis}
+Aspect-based sentiment analysis (ABSA) goes one step beyond overall polarity and asks which aspect of
+a product or service an opinion is about. The SemEval-2014 Task~4~\cite{b6} defined standard subtasks
+for aspect term extraction and aspect polarity on restaurant and laptop reviews. Most high-performing
+ABSA models are supervised and need aspect-annotated training data, which is costly to create and
+specific to a domain. Since every brand has its own vocabulary, we use a lighter approach based on a
+configurable aspect lexicon and clause splitting.
+
+\subsection{Anomaly Detection and Forecasting}
+Isolation Forest~\cite{b7} detects anomalies by building random trees and measuring how quickly a
+point gets isolated. Anomalous points are isolated in fewer splits. The method is unsupervised, fast
+and works well on low-dimensional data, which makes it suitable for detecting unusual time windows
+in mention statistics. For forecasting, Prophet~\cite{b8} models a time series as a combination of
+trend, seasonality and holiday effects. It is robust to missing data and its output is easy for
+non-experts to interpret.
+
+\subsection{Summary and Research Gap}
+Table~\ref{tab:lit} summarises the main works reviewed. Most existing approaches address only one
+part of the problem, whether that is sentiment classification, aspect extraction, or anomaly
+detection. We found very few systems that combine aspect-level analysis with real-time crisis
+detection, and fewer still that are designed for code-mixed Indian-language comments. BrandShield AI
+aims to bring these pieces together in a single working system.
+
+\begin{table}[t]
+\caption{Summary of Related Work}
+\label{tab:lit}
+\centering
+\footnotesize
+\begin{tabular}{>{\raggedright}p{1.6cm} >{\raggedright}p{2.6cm} >{\raggedright\arraybackslash}p{3.1cm}}
+\toprule
+\textbf{Work} & \textbf{Approach} & \textbf{Limitation for our use} \\
+\midrule
+BERT~\cite{b1} & Pre-trained transformer & Heavy for CPU, English only \\
+DistilBERT~\cite{b2} & Distilled BERT & Weak on code-mixed text \\
+VADER~\cite{b3} & Rule-based lexicon & No context, English only \\
+Joshi et al.~\cite{b4} & Sub-word LSTM & Sentiment only, no aspects \\
+SemEval-2020~\cite{b5} & Code-mixed benchmark & Not a deployed system \\
+SemEval-2014~\cite{b6} & Supervised ABSA & Needs labelled aspect data \\
+Isolation Forest~\cite{b7} & Unsupervised anomaly detection & No notion of sentiment \\
+Prophet~\cite{b8} & Time-series forecasting & Forecasts only, no alerts \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=====================================================================
+\section{Problem Statement, Objectives and Scope}
+
+\subsection{Problem Statement}
+To design and develop a real-time system that continuously monitors public social media conversation
+about a brand, classifies sentiment in English as well as code-mixed Indian languages, identifies the
+specific aspects behind customer opinions, and alerts the brand early when there is an unusual rise
+in negative sentiment, while running on low-cost hardware.
+
+\subsection{Objectives}
+\begin{enumerate}
+\item To collect brand-related comments automatically from YouTube, Instagram, news feeds and app
+store reviews through their official APIs.
+\item To clean and preprocess noisy social media text, including emojis, slang and spam.
+\item To classify each comment as positive, negative or neutral using a multilingual transformer,
+with additional handling for Hinglish, Hindi and Marathi.
+\item To extract aspects such as delivery, price, service and food quality, and assign sentiment to
+each aspect separately.
+\item To detect harmful anomalies in negative sentiment and forecast short-term sentiment trends.
+\item To combine these signals into a single brand-risk score and generate timely alerts.
+\item To present the results on a live, easy-to-understand dashboard.
+\end{enumerate}
+
+\subsection{Scope}
+The system is designed for a single brand workspace and works only with publicly available data
+collected through official platform APIs. It does not scrape websites or access private messages.
+The current version supports English, Hinglish, Hindi and Marathi, although the multilingual model can
+classify comments in many other languages as well. Platforms such as X (Twitter) and Facebook are
+outside the current scope due to API access costs.
+
+%=====================================================================
+\section{Proposed System}
+
+\subsection{System Overview}
+The system is organised into six layers that work as a streaming pipeline:
+\begin{enumerate}
+\item \textit{Collection layer:} fetches new comments from each platform.
+\item \textit{Streaming layer:} a message queue that decouples collection from processing.
+\item \textit{NLP layer:} preprocessing, sentiment classification and aspect extraction.
+\item \textit{Analytics layer:} time-window aggregation, anomaly detection, forecasting and risk
+scoring.
+\item \textit{Alerting layer:} rule-based alerts with cool-down periods.
+\item \textit{Presentation layer:} a web dashboard that updates live.
+\end{enumerate}
+
+\subsection{Data Collection}
+Each platform has its own collector that follows a common interface, so new platforms can be added
+without changing the rest of the system. Table~\ref{tab:sources} lists the sources currently
+supported. All access is read-only and uses official APIs.
+
+\begin{table}[t]
+\caption{Data Sources}
+\label{tab:sources}
+\centering
+\footnotesize
+\begin{tabular}{l l l}
+\toprule
+\textbf{Platform} & \textbf{Access Method} & \textbf{Poll Interval} \\
+\midrule
+YouTube & YouTube Data API v3 & 300 s \\
+Instagram & Instagram API (OAuth 2.0) & 180 s \\
+News & Google News RSS & 180 s \\
+App Store & Apple customer-review RSS & 180 s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Collectors publish comments to a message bus instead of calling the classifier directly. We support
+Apache Kafka~\cite{b9} for distributed deployment and an in-process asynchronous queue for running
+on a single machine. Because of this decoupling, a burst of several thousand comments or a slow API
+only increases the queue length and does not stop the system.
+
+\subsection{Preprocessing}
+Each comment passes through the following steps in order:
+\begin{enumerate}
+\item Removal of URLs, @-mentions and HTML tags.
+\item Hashtag unwrapping, e.g. \#latedelivery $\rightarrow$ latedelivery.
+\item Shortening of repeated characters, e.g. ``sooooo'' $\rightarrow$ ``soo''.
+\item Conversion of about 30 common emojis into words (an angry face becomes ``angry''), since the
+model tokenizer treats most emojis as unknown tokens.
+\item Tokenisation and stop-word removal, while keeping negation words such as ``not'' and ``nahi''.
+\item Lemmatisation using WordNet.
+\item Language identification.
+\end{enumerate}
+A rule-based spam filter flags promotional and bot-like content such as follow-for-follow messages,
+link-heavy posts and hashtag stuffing. Spam comments are stored but excluded from all sentiment
+statistics.
+
+\subsection{Hybrid Sentiment Classification}
+The base model is a multilingual DistilBERT that outputs five ordinal classes (very negative to very
+positive). We merge these into three classes by adding neighbouring probabilities. Let
+$p_m = (p^+, p^0, p^-)$ be the resulting model distribution over positive, neutral and negative.
+
+For code-mixed text we also compute a lexicon polarity $\ell \in [-1, 1]$, the average signed weight
+of opinion words found from our Hinglish, Hindi and Marathi word list. A negation word within two
+tokens flips the sign. If at least one lexicon word is found, the two distributions are blended:
+\begin{equation}
+p = (1 - \lambda)\, p_m + \lambda\, p_\ell, \qquad \lambda = 0.35
+\end{equation}
+where $p_\ell = \big(\max(\ell,0),\; 1 - |\ell|,\; \max(-\ell,0)\big)$.
+
+We observed that the model often gives a weak positive or negative label to purely factual
+comments. To correct this, if the top class is not neutral, no lexicon word matched, and the gap
+between the two highest probabilities is small,
+\begin{equation}
+p_{(1)} - p_{(2)} < \delta, \qquad \delta = 0.20
+\end{equation}
+the comment is labelled neutral. Finally, a continuous sentiment score
+\begin{equation}
+s = p^+ - p^-, \qquad s \in [-1, 1]
+\end{equation}
+is stored with each comment and used in all later analytics. Results are cached on the normalised
+text, since social media streams contain many repeated comments.
+
+\subsection{Aspect-Based Sentiment Analysis}
+Each comment is split into clauses at sentence boundaries and at contrast words such as ``but'',
+``however'', ``lekin'', ``magar'' and ``par''. Each clause is then matched against an aspect lexicon
+using whole-word matching. Whole-word matching avoids errors such as detecting ``late'' inside
+``chocolate''. The default lexicon has eight aspects: food quality, service, delivery, price,
+ambience, hygiene, app experience and packaging. Every clause that contains an aspect is classified
+separately by the sentiment model, so ``food was great but delivery was late'' produces a positive
+result for food quality and a negative result for delivery. Users can add or edit aspects from the
+dashboard without restarting the system.
+
+\subsection{Crisis Detection}
+Comments are grouped into fixed time buckets of 15 minutes. For each bucket $t$ we compute the total
+number of comments $n_t$, the number of negative comments $n^-_t$, the mean sentiment $\bar{s}_t$,
+and the negative share
+\begin{equation}
+r_t = \frac{n^-_t}{n_t}.
+\end{equation}
+
+Two detectors run in parallel. The first is an Isolation Forest trained on recent buckets using the
+feature vector $\langle n_t, n^-_t, r_t, \bar{s}_t, \Delta n^-_t \rangle$. The second is a robust
+z-score computed against a trailing window of $w$ buckets using the median and the median absolute
+deviation (MAD):
+\begin{equation}
+z_t = \frac{x_t - \mathrm{med}(x_{t-w:t-1})}{1.4826 \cdot \mathrm{MAD}(x_{t-w:t-1})}
+\end{equation}
+The median and MAD are used instead of the mean and standard deviation because they are not
+distorted by the very spikes we are trying to detect.
+
+A bucket is marked as a crisis only when the negative \textit{share} rises sharply and this is
+confirmed by the negative \textit{count}. In our early tests, a rule based only on the raw count
+flagged normal lunch and evening peaks as crises, because the count goes up whenever overall
+activity goes up. Using the share as the main signal removed these false alarms.
+
+\subsection{Forecasting and Risk Score}
+Hourly series of mean sentiment, negative share and volume are forecast with Prophet~\cite{b8}. When
+fewer than 36 hours of data are available, the system falls back to Holt's linear smoothing.
+
+A brand-risk score $R \in [0, 100]$ is computed from five components, each scaled to $[0,1]$:
+\begin{equation}
+R = 35 f_1 + 20 f_2 + 25 f_3 + 10 f_4 + 10 f_5
+\end{equation}
+where $f_1$ is the recent negative share, $f_2$ the speed at which negative comments are increasing,
+$f_3$ the anomaly score, $f_4$ the forecasted decline over the next six hours, and $f_5$ how much of
+the negativity is concentrated in a single aspect. The score is mapped to four levels: low, medium,
+high and critical. Since a high score needs several signals to agree, a single noisy signal does not
+cause a false alarm.
+
+\subsection{Alerting and Dashboard}
+Alert rules cover negative spikes, risk threshold crossings, sustained negativity, aspect-specific
+surges, forecasted decline, spam waves and individual negative posts going viral. Each rule has a
+30-minute cool-down so that one incident produces one alert and not a flood of messages. Alerts are
+pushed to the dashboard over WebSocket and can also be sent by email, Slack, Microsoft Teams or SMS.
+The dashboard is a React application showing live sentiment trends, aspect breakdowns, the risk
+score, forecasts and the alert history.
+
+%=====================================================================
+\section{Implementation Details}
+
+The backend is written in Python using FastAPI, and the models run on PyTorch through the Hugging Face
+Transformers library. Table~\ref{tab:stack} lists the main tools used. Development was done on a
+laptop with an AMD Ryzen~7 7435HS processor and 24~GB RAM. Although the laptop has an RTX~4050 GPU,
+it was intentionally not used, so that the results reflect CPU-only deployment. The complete system
+uses about 1.77~GB of memory and can be hosted on a basic 2-core, 4~GB cloud virtual machine.
+
+\begin{table}[t]
+\caption{Technology Stack}
+\label{tab:stack}
+\centering
+\footnotesize
+\begin{tabular}{l l}
+\toprule
+\textbf{Component} & \textbf{Tool / Library} \\
+\midrule
+Backend API & FastAPI (Python) \\
+Deep learning & PyTorch (CPU), Hugging Face Transformers \\
+Sentiment model & Multilingual DistilBERT \\
+Text processing & NLTK, WordNet \\
+Anomaly detection & scikit-learn (Isolation Forest) \\
+Forecasting & Prophet, Holt smoothing \\
+Message queue & Apache Kafka / asyncio queue \\
+Database & SQLite \\
+Frontend & React, Chart.js \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=====================================================================
+\section{Preliminary Results}
+
+\subsection{Datasets}
+\textit{Annotated benchmark (83 comments):} brand comments that we labelled by hand as positive,
+neutral or negative. The set intentionally includes English, Hinglish, Hindi in both scripts,
+Marathi, sarcasm, mixed opinions and spam. Aspect labels are available for 47 of these comments.
+
+\textit{Live corpus (9,984 comments):} collected by the running system from a YouTube channel (9,549
+comments over 15 videos), Google News (283 articles) and the Apple App Store (150 reviews). Apart
+from English, the corpus contains Indonesian, Spanish, Portuguese, Italian and Arabic comments, which
+shows that multilingual support is needed in practice.
+
+\textit{External validation (150 reviews):} App Store reviews come with a star rating given by the
+reviewer. We map 1--2 stars to negative, 3 to neutral and 4--5 to positive, and use this as an
+independent label.
+
+\subsection{Sentiment Classification}
+Table~\ref{tab:results} compares the transformer alone with our hybrid classifier. Accuracy stays the
+same, but macro-F1 and macro-recall improve, which means the lexicon mainly helps on the harder
+minority-class and code-mixed comments. We also tried a smaller distilled multilingual model
+earlier, which gave only 49.4\% accuracy. Choosing the right base model turned out to be the most
+important decision in the project.
+
+\begin{table}[t]
+\caption{Sentiment Classification on the Annotated Benchmark}
+\label{tab:results}
+\centering
+\footnotesize
+\begin{tabular}{l c c c}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Macro-P} & \textbf{Macro-F1} \\
+\midrule
+DistilBERT only & 0.783 & 0.774 & 0.765 \\
+Hybrid (ours) & 0.783 & 0.784 & 0.776 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:perclass} shows per-class results. No negative comment was predicted as positive, so
+the system almost never reports a happy customer when the customer is actually unhappy. The neutral
+class is the weakest, as it is hard to separate factual statements from mild opinions.
+
+\begin{table}[t]
+\caption{Per-Class Performance of the Hybrid Classifier}
+\label{tab:perclass}
+\centering
+\footnotesize
+\begin{tabular}{l c c c c}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support} \\
+\midrule
+Negative & 0.757 & 0.800 & 0.778 & 35 \\
+Neutral & 0.636 & 0.700 & 0.667 & 20 \\
+Positive & 0.958 & 0.821 & 0.885 & 28 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Aspect Detection and External Validation}
+On the 47 aspect-labelled comments, aspect detection achieves a precision of 0.900, recall of 0.730
+and F1 of 0.806. High precision means that when an aspect is assigned, it is almost always correct;
+the lower recall is due to words not yet present in the lexicon. On the 150 App Store reviews, our
+predictions matched the star-based labels for 122 reviews (81.3\%). Since these labels come from the
+reviewers themselves, this gives some confidence that the benchmark accuracy is not a result of our
+own labelling choices.
+
+\subsection{Speed and Early Crisis Test}
+With a batch size of 32, the system classifies a comment in 9.51~ms on the laptop CPU. In an early
+test where we injected a burst of negative delivery complaints into the live stream, the first alert
+was raised after about 60 seconds and the risk score rose from 12 to 68.
+
+%=====================================================================
+\section{Limitations and Future Work}
+
+Since this is an early version, there are several limitations that we plan to address:
+\begin{itemize}
+\item The annotated benchmark has only 83 comments labelled by our team. We plan to build a larger
+dataset with multiple annotators and report inter-annotator agreement.
+\item Comments with mixed opinions are usually labelled negative overall, even though the aspect-level
+output is correct.
+\item Some code-mixed complaints, especially about price (``bahut mehenga hai''), are still missed.
+\item Aspect detection depends on the lexicon, so new vocabulary is missed until it is added. We plan
+to try a few-shot or prompt-based aspect extractor.
+\item The crisis test used an injected surge with a sharp start. Real crises build up more slowly, so
+we plan to evaluate on documented real-world brand incidents.
+\end{itemize}
+
+%=====================================================================
+\section{Conclusion}
+
+This paper presented the design and initial implementation of BrandShield AI, a real-time system for
+monitoring brand sentiment on social media. The system combines multilingual sentiment
+classification, aspect-level analysis, anomaly-based crisis detection, forecasting and alerting in a
+single pipeline that runs on an ordinary CPU. Early results are encouraging, with 78.3\% accuracy on a
+multilingual benchmark, 0.806 F1 for aspect detection and 81.3\% agreement with independent star
+ratings. The next stage of the work will focus on a larger evaluation dataset, better handling of
+code-mixed text and testing on real brand crises.
+
+\section*{Acknowledgment}
+We thank our guide, Dr. Darshan Medhane, for his guidance and support, and the Department of
+Artificial Intelligence and Data Science, K. K. Wagh Institute of Engineering Education and Research,
+Nashik, for providing the necessary facilities.
+
+\begin{thebibliography}{00}
+\bibitem{b1} J. Devlin, M.-W. Chang, K. Lee and K. Toutanova, ``BERT: Pre-training of deep
+bidirectional transformers for language understanding,'' in \textit{Proc. NAACL-HLT}, 2019,
+pp. 4171--4186.
+\bibitem{b2} V. Sanh, L. Debut, J. Chaumond and T. Wolf, ``DistilBERT, a distilled version of BERT:
+smaller, faster, cheaper and lighter,'' \textit{arXiv:1910.01108}, 2019.
+\bibitem{b3} C. J. Hutto and E. Gilbert, ``VADER: A parsimonious rule-based model for sentiment
+analysis of social media text,'' in \textit{Proc. 8th Int. AAAI Conf. Weblogs and Social Media
+(ICWSM)}, 2014.
+\bibitem{b4} A. Joshi, A. Prabhu, M. Shrivastava and V. Varma, ``Towards sub-word level compositions
+for sentiment analysis of Hindi-English code mixed text,'' in \textit{Proc. COLING}, 2016,
+pp. 2482--2491.
+\bibitem{b5} P. Patwa et al., ``SemEval-2020 Task 9: Overview of sentiment analysis of code-mixed
+tweets,'' in \textit{Proc. 14th Workshop on Semantic Evaluation (SemEval)}, 2020, pp. 774--790.
+\bibitem{b6} M. Pontiki, D. Galanis, J. Pavlopoulos, H. Papageorgiou, I. Androutsopoulos and
+S. Manandhar, ``SemEval-2014 Task 4: Aspect based sentiment analysis,'' in \textit{Proc. 8th Int.
+Workshop on Semantic Evaluation (SemEval)}, 2014, pp. 27--35.
+\bibitem{b7} F. T. Liu, K. M. Ting and Z.-H. Zhou, ``Isolation Forest,'' in \textit{Proc. 8th IEEE
+Int. Conf. Data Mining (ICDM)}, 2008, pp. 413--422.
+\bibitem{b8} S. J. Taylor and B. Letham, ``Forecasting at scale,'' \textit{The American
+Statistician}, vol. 72, no. 1, pp. 37--45, 2018.
+\bibitem{b9} J. Kreps, N. Narkhede and J. Rao, ``Kafka: A distributed messaging system for log
+processing,'' in \textit{Proc. NetDB Workshop}, 2011.
+\bibitem{b10} F. Barbieri, J. Camacho-Collados, L. Espinosa-Anke and L. Neves, ``TweetEval: Unified
+benchmark and comparative evaluation for tweet classification,'' in \textit{Findings of EMNLP},
+2020, pp. 1644--1650.
+\bibitem{b11} A. Vaswani et al., ``Attention is all you need,'' in \textit{Proc. Advances in Neural
+Information Processing Systems (NeurIPS)}, 2017, pp. 5998--6008.
+\bibitem{b12} A. Conneau et al., ``Unsupervised cross-lingual representation learning at scale,'' in
+\textit{Proc. ACL}, 2020, pp. 8440--8451.
+\end{thebibliography}
+
+\end{document}

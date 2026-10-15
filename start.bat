@@ -23,7 +23,7 @@ if not exist frontend\dist\index.html (
 
 echo.
 echo Starting BrandShield AI at http://127.0.0.1:8000
-echo (first start downloads the DistilBERT model and generates demo history - give it a few minutes)
+echo (first start downloads the sentiment models (about 1.6 GB) and generates demo history - give it a few minutes)
 echo.
 start "" http://127.0.0.1:8000
 cd backend

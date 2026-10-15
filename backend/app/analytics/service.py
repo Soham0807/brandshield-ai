@@ -12,7 +12,7 @@ import pandas as pd
 
 from app.analytics import anomaly as anomaly_mod
 from app.analytics.forecast import forecast
-from app.analytics.risk import compute_risk
+from app.analytics.risk import compute_risk, recent_bucket_count
 from app.config import Settings
 from app.db import Database, to_iso, utcnow
 from app.runtime import RuntimeConfig
@@ -210,7 +210,7 @@ class AnalyticsService:
 
     def build_summary(self, hours, cur, prev, aspects, risk, current_df) -> str:
         if not cur["total"]:
-            return "No mentions have been collected in this period yet. Enable a data source in Settings."
+            return "No mentions have been collected in this period yet. Add a YouTube channel or connect an Instagram account to start."
         window = f"the last {int(hours)} hours" if hours != 24 else "the last 24 hours"
         mood = ("mostly positive" if cur["positive_pct"] >= 55 else
                 "mostly negative" if cur["negative_pct"] >= 45 else "mixed")
@@ -287,8 +287,17 @@ class AnalyticsService:
         )
         recent_df = df[df["created_at"] >= pd.Timestamp(now - timedelta(hours=1))] if not df.empty else df
         recent_aspects = self.aspect_table(recent_df)
-        risk = compute_risk(anomalies, bucket, self.forecast_data.get("sentiment"), recent_aspects,
-                            int(t["min_negative_mentions"]))
+        # the risk score widens its "recent" window on low-volume sources (see risk.recent_bucket_count);
+        # alert rules keep using the one-hour window above
+        risk_n = recent_bucket_count(anomalies, bucket)
+        risk_hours = risk_n * bucket / 60
+        if risk_hours > 1 and not df.empty:
+            risk_df = df[df["created_at"] >= pd.Timestamp(now - timedelta(hours=risk_hours))]
+            risk_aspects = self.aspect_table(risk_df)
+        else:
+            risk_aspects = recent_aspects
+        risk = compute_risk(anomalies, bucket, self.forecast_data.get("sentiment"), risk_aspects,
+                            int(t["min_negative_mentions"]), recent_n=risk_n)
         incidents = anomaly_mod.summarise_anomalies(anomalies, bucket)
         recent_counts = self.sentiment_counts(recent_df)
         # risk history for the chart (score per hour, simplified)

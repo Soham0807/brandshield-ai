@@ -28,10 +28,13 @@ class Settings(BaseSettings):
     evaluation_path: Path = BASE_DIR / "data" / "evaluation.json"
 
     # ---- NLP models -----------------------------------------------------
-    # Multilingual DistilBERT fine-tuned for sentiment (5 classes folded into 3)
-    sentiment_model: str = "tabularisai/multilingual-sentiment-analysis"
-    # Binary DistilBERT used if the main model cannot be loaded
-    fallback_sentiment_model: str = "distilbert-base-uncased-finetuned-sst-2-english"
+    # Ensemble (comma-separated, probabilities averaged): multilingual XLM-RoBERTa + English
+    # RoBERTa, both trained on tweets by Cardiff NLP. 74% on 200 real labelled comments.
+    sentiment_model: str = ("cardiffnlp/twitter-xlm-roberta-base-sentiment,"
+                            "cardiffnlp/twitter-roberta-base-sentiment-latest")
+    # Tried in order if no ensemble member loads: the earlier multilingual DistilBERT, then binary SST-2
+    fallback_sentiment_model: str = ("tabularisai/multilingual-sentiment-analysis,"
+                                     "distilbert-base-uncased-finetuned-sst-2-english")
     model_batch_size: int = 32
     model_max_length: int = 256
 
@@ -72,6 +75,15 @@ class Settings(BaseSettings):
     appstore_country: str = "in"
     appstore_app_id: str = ""            # leave empty to find the app by brand name
     appstore_pages: int = 3              # 50 reviews per page
+
+    # Public Instagram pages of ANY brand, read through Apify (no Instagram login).
+    # One token from console.apify.com -> Settings -> API & Integrations.
+    apify_token: str = ""
+    apify_base: str = "https://api.apify.com/v2"
+    apify_timeout_seconds: int = 300
+    instagram_pages_posts: int = 6               # latest posts tracked per page
+    instagram_pages_comments_per_post: int = 40  # newest comments fetched per changed post
+    instagram_pages_poll_seconds: int = 900      # each sync costs Apify credit, so not too often
 
     # Instagram API with Instagram Login (OAuth). Create an app at developers.facebook.com
     instagram_app_id: str = ""

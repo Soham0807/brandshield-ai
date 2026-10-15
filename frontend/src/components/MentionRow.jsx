@@ -1,24 +1,13 @@
 import { ExternalLink, Heart } from 'lucide-react'
-import { aspectLabel, SOURCE_LABELS, timeAgo } from '../lib/format'
+import { aspectLabel, authorLabel, SOURCE_LABELS, timeAgo } from '../lib/format'
 import { SentimentBadge } from './ui'
-
-const SOURCE_DOT = {
-  instagram: 'bg-pink-500',
-  twitter: 'bg-sky-400',
-  reddit: 'bg-orange-500',
-  news: 'bg-violet-400',
-  youtube: 'bg-red-500',
-  appstore: 'bg-blue-400',
-  google_reviews: 'bg-emerald-400',
-}
 
 export default function MentionRow({ mention, compact = false, fresh = false }) {
   const m = mention
   return (
     <div className={`border-b border-ink-700/60 px-5 py-3 last:border-0 ${fresh ? 'animate-slide-in' : ''}`}>
       <div className="flex items-center gap-2 text-xs text-stone-500">
-        <span className={`size-1.5 rounded-full ${SOURCE_DOT[m.source] || 'bg-stone-500'}`} />
-        <span className="font-medium text-stone-300">@{m.author || 'unknown'}</span>
+        <span className="font-semibold text-stone-50">{authorLabel(m.author)}</span>
         <span>· {SOURCE_LABELS[m.source] || m.source}</span>
         <span>· {timeAgo(m.created_at)}</span>
         {m.origin === 'simulated' && (
@@ -34,30 +23,30 @@ export default function MentionRow({ mention, compact = false, fresh = false }) 
           <SentimentBadge value={m.sentiment} spam={m.is_spam} />
         </span>
       </div>
-      <p className={`mt-1.5 text-sm text-stone-200 ${compact ? 'line-clamp-2' : ''}`}>{m.text}</p>
+      <p className={`mt-1.5 text-[15px] leading-relaxed text-stone-100 ${compact ? 'line-clamp-2' : ''}`}>{m.text}</p>
       {!compact && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {m.aspects?.map((a) => (
             <span
               key={a.aspect}
               title={a.evidence}
-              className={`rounded-md border px-1.5 py-0.5 text-[11px] ${
+              className={`border px-1.5 py-0.5 text-[11px] ${
                 a.sentiment === 'negative'
-                  ? 'border-red-500/30 text-red-300'
+                  ? 'border-red-500/40 text-red-400'
                   : a.sentiment === 'positive'
-                    ? 'border-emerald-500/30 text-emerald-300'
+                    ? 'border-emerald-500/40 text-emerald-400'
                     : 'border-ink-600 text-stone-400'
               }`}
             >
               {aspectLabel(a.aspect)}
             </span>
           ))}
-          {m.is_spam && m.spam_reason && <span className="text-[11px] text-orange-300/80">Spam: {m.spam_reason}</span>}
-          <span className="ml-auto text-[11px] text-stone-500">
+          {m.is_spam && m.spam_reason && <span className="text-[11px] text-amber-400">Spam: {m.spam_reason}</span>}
+          <span className="ml-auto font-mono text-[10.5px] text-stone-500">
             confidence {(m.confidence * 100).toFixed(0)}% · score {m.score > 0 ? '+' : ''}{m.score.toFixed(2)}
           </span>
           {m.url && (
-            <a href={m.url} target="_blank" rel="noreferrer" className="text-stone-500 hover:text-amber-400">
+            <a href={m.url} target="_blank" rel="noreferrer" className="text-stone-500 hover:text-red-400">
               <ExternalLink size={12} />
             </a>
           )}

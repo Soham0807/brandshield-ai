@@ -16,6 +16,7 @@ from app.collectors.simulator import MentionSimulator
 from app.config import Settings
 from app.db import Database, to_iso, utcnow
 from app.integrations.instagram import InstagramCollector, InstagramError, InstagramService
+from app.integrations.instagram_public import InstagramPageCollector, InstagramPublicError, InstagramPublicService
 from app.integrations.tunnel import TunnelManager
 from app.integrations.youtube import YouTubeChannelCollector, YouTubeError, YouTubeService
 from app.nlp.aspects import AspectExtractor
@@ -47,6 +48,7 @@ class App:
         self.simulator = MentionSimulator()
         self.instagram = InstagramService(self.db, settings)
         self.youtube = YouTubeService(self.db, settings)
+        self.instagram_pages = InstagramPublicService(self.db, settings)
         self.tunnel = TunnelManager(settings, db=self.db, on_change=self._tunnel_changed)
         self.collectors = {
             "reddit": RedditCollector(settings),
@@ -55,6 +57,7 @@ class App:
             "youtube": YouTubeChannelCollector(self.youtube, settings),
             "appstore": AppStoreCollector(settings),
             "instagram": InstagramCollector(self.instagram, settings),
+            "instagram_pages": InstagramPageCollector(self.instagram_pages, settings),
         }
         self.bus = None
         self.status = {"model": "loading", "seeding": None}
@@ -187,7 +190,7 @@ class App:
                             new += 1
                     collector.last_count = new
                     collector.total += new
-                except (CollectorError, InstagramError, YouTubeError) as exc:
+                except (CollectorError, InstagramError, InstagramPublicError, YouTubeError) as exc:
                     collector.last_error = str(exc)
                 except Exception as exc:
                     collector.last_error = f"{type(exc).__name__}: {exc}"
@@ -251,7 +254,9 @@ class App:
             "youtube": {"configured": self.youtube.configured,
                         "channels": [c["title"] for c in self.youtube.list_channels()]},
             "instagram": {"app_configured": self.instagram.app_configured,
-                          "accounts": [a["username"] for a in self.instagram.list_accounts()]},
+                          "accounts": [a["username"] for a in self.instagram.list_accounts()],
+                          "pages_configured": self.instagram_pages.configured,
+                          "pages": [p["username"] for p in self.instagram_pages.list_pages()]},
             "simulated_mentions": self.db.scalar("SELECT COUNT(*) FROM mentions WHERE origin = 'simulated'"),
             "mentions_stored": self.db.count_mentions(),
             "websocket_clients": self.hub.client_count,
@@ -304,6 +309,23 @@ class App:
         collector.total += len(raws)
         return len(raws)
 
+    async def sync_instagram_page(self, username: str, force: bool) -> int:
+        """Fetch a public page's latest posts + comments and queue them for analysis."""
+        if not self.db.scalar("SELECT 1 FROM ig_pages WHERE username = ?", (username,)):
+            raise InstagramPublicError("Page not found")
+        collector = self.collectors["instagram_pages"]
+        try:
+            raws = await self.instagram_pages.sync_page(username, force)
+        except InstagramPublicError as exc:
+            self.instagram_pages.set_error(username, str(exc))
+            collector.last_error = str(exc)
+            raise
+        for raw in raws:
+            await self.publish(raw)
+        collector.last_poll, collector.last_count, collector.last_error = time.time(), len(raws), None
+        collector.total += len(raws)
+        return len(raws)
+
     async def use_live_data_only(self, rename_brand: bool) -> dict:
         """Switch off the simulator and delete simulated mentions + alerts."""
         patch = {"sources": {"simulator": False}}
@@ -333,6 +355,35 @@ class App:
         await self.hub.broadcast("status", self.public_status())
         await self.hub.broadcast("refresh", {"reason": "live-only"})
         return {"deleted_simulated": deleted, "config": self.runtime.get()}
+
+    async def retag_topics(self, days: int = 30) -> int:
+        """Re-run topic detection on recent mentions after the topic list changed,
+        so the dashboard reflects the new topics immediately."""
+        import json
+
+        from app.nlp.preprocess import preprocess
+
+        if self.status.get("retagging"):
+            return 0
+        self.status["retagging"] = True
+        try:
+            rows = self.db.query("SELECT id, text, sentiment, score, confidence, probs FROM mentions "
+                                 "WHERE created_at >= ?", (to_iso(utcnow() - timedelta(days=days)),))
+            for i in range(0, len(rows), 256):
+                chunk = rows[i:i + 256]
+                texts = [preprocess(r["text"]).model_text for r in chunk]
+                overall = [{"label": r["sentiment"], "score": r["score"], "confidence": r["confidence"],
+                            "probs": json.loads(r["probs"] or "{}")} for r in chunk]
+                tagged = await asyncio.to_thread(self.aspects.analyze_batch, texts, overall, self.model)
+                await asyncio.to_thread(self.db.update_aspects,
+                                        [(json.dumps(t), r["id"]) for t, r in zip(tagged, chunk)])
+            self.analytics._cache.clear()
+            await asyncio.to_thread(self.analytics.compute_snapshot)
+            await self.hub.broadcast("refresh", {"reason": "topics"})
+            logger.info("Re-tagged topics on %s mentions", len(rows))
+            return len(rows)
+        finally:
+            self.status["retagging"] = False
 
     def crisis(self, aspect: str, minutes: int, intensity: float) -> dict:
         self.simulator.start_crisis(aspect, minutes, intensity, utcnow())

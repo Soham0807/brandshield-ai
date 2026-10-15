@@ -1,5 +1,5 @@
 import {
-  AlertTriangle, CheckCircle2, Eye, KeyRound, Loader2, MessageCircle, PlaySquare,
+  CheckCircle2, Eye, Loader2, MessageCircle, PlaySquare,
   RefreshCw, Search, ThumbsUp, Trash2, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -43,7 +43,7 @@ export default function YouTube() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="display text-xl font-semibold text-stone-50">YouTube</h1>
+        <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">YouTube</h1>
         <p className="text-sm text-stone-500">
           Monitor any public channel — real videos, real comments, analysed by the same AI pipeline
         </p>
@@ -57,7 +57,7 @@ export default function YouTube() {
         </div>
       )}
 
-      {!s ? <Spinner /> : !s.configured ? <ApiKeySetup reload={status.reload} /> : (
+      {!s ? <Spinner /> : !s.configured ? <NotEnabled /> : (
         <>
           <Card title="Add a channel" subtitle="Type a handle (@mkbhd), a channel URL, a channel ID or a channel name">
             <div className="flex flex-wrap gap-2">
@@ -115,53 +115,17 @@ export default function YouTube() {
   }
 }
 
-function ApiKeySetup({ reload }) {
-  const [key, setKey] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
+function NotEnabled() {
   return (
-    <div className="grid gap-4 xl:grid-cols-5">
-      <div className="card flex flex-col items-center justify-center p-8 text-center xl:col-span-2">
-        <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-rose-950/40">
-          <PlaySquare size={30} />
-        </span>
-        <h2 className="display mt-5 text-lg font-semibold text-stone-50">Connect YouTube</h2>
-        <p className="mt-2 max-w-sm text-sm text-stone-400">
-          One free API key lets BrandShield read public videos and comments from <b>any</b> channel — no login,
-          no permission from the channel owner.
-        </p>
-      </div>
-      <Card title="Get your free key" subtitle="No billing, no card — about 3 minutes" className="xl:col-span-3">
-        <ErrorBox message={error} />
-        <ol className="mt-1 space-y-3 text-sm text-stone-300">
-          {[
-            <>Open <a className="text-amber-400 hover:underline" href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">console.cloud.google.com</a> and create a project (any name).</>,
-            <><b>APIs &amp; Services → Library</b> → search <b>“YouTube Data API v3”</b> → <b>Enable</b>.</>,
-            <><b>APIs &amp; Services → Credentials → Create credentials → API key</b>, then copy it.</>,
-          ].map((content, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-500/15 text-xs font-semibold text-amber-300">{i + 1}</span>
-              <div className="flex-1 pt-0.5">{content}</div>
-            </li>
-          ))}
-        </ol>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <input className="input min-w-64 flex-1" type="password" placeholder="Paste the YouTube API key"
-                 value={key} onChange={(e) => setKey(e.target.value)} />
-          <button className="btn-primary" disabled={busy || !key.trim()} onClick={async () => {
-            setBusy(true); setError(null)
-            try {
-              await api.put('/keys', { youtube_api_key: key.trim() })
-              await reload()
-            } catch (e) { setError(e.message) } finally { setBusy(false) }
-          }}>
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Save key
-          </button>
-        </div>
-        <p className="mt-2 text-xs text-stone-500">
-          The key is stored in <code className="text-stone-300">backend/.env</code> on this machine and never leaves it.
-        </p>
-      </Card>
+    <div className="card flex flex-col items-center justify-center p-10 text-center">
+      <span className="grid size-16 place-items-center rounded-sm bg-stone-50 text-ink-950">
+        <PlaySquare size={30} />
+      </span>
+      <h2 className="display mt-5 text-lg font-semibold text-stone-50">YouTube monitoring isn’t switched on yet</h2>
+      <p className="mt-2 max-w-md text-sm text-stone-400">
+        Once it is, you can type any channel name here and BrandShield reads its videos and comments for you.
+        Ask whoever runs BrandShield to turn it on in <Link to="/setup" className="link">Server setup</Link>.
+      </p>
     </div>
   )
 }
@@ -173,9 +137,9 @@ function ChannelCard({ channel: c, busy, onSync, onRemove }) {
       <div className="flex flex-wrap items-center gap-4">
         {c.thumbnail_url ? (
           <img src={c.thumbnail_url} alt="" referrerPolicy="no-referrer"
-               className="size-16 rounded-full border-2 border-red-500/50 object-cover" />
+               className="size-16 rounded-full border border-ink-600 object-cover" />
         ) : (
-          <div className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-xl font-semibold text-white">
+          <div className="grid size-16 place-items-center rounded-full bg-stone-50 display text-2xl font-semibold text-ink-950">
             {c.title?.[0] || '?'}
           </div>
         )}
@@ -203,19 +167,19 @@ function ChannelCard({ channel: c, busy, onSync, onRemove }) {
         </div>
       </div>
       {total > 0 && (
-        <div className="mt-4 border-t border-white/[0.07] pt-4">
+        <div className="mt-4 border-t border-ink-700 pt-4">
           <div className="mb-1.5 flex justify-between text-xs text-stone-400">
             <span>Audience sentiment</span>
             <span>
               <span className="text-emerald-400">{Math.round((100 * c.positive) / total)}% positive</span> ·{' '}
               <span className="text-slate-300">{Math.round((100 * c.neutral) / total)}% neutral</span> ·{' '}
               <span className="text-rose-400">{Math.round((100 * c.negative) / total)}% negative</span>
-              {c.spam > 0 && <> · <span className="text-amber-300">{c.spam} spam</span></>}
+              {c.spam > 0 && <> · <span className="text-amber-400">{c.spam} spam</span></>}
             </span>
           </div>
           <SentimentBar positive={c.positive} neutral={c.neutral} negative={c.negative} />
           <div className="mt-3 text-xs">
-            <Link to="/" className="text-amber-400 hover:underline">Open the dashboard</Link> for trends, aspects,
+            <Link to="/" className="link">Open the dashboard</Link> for trends, aspects,
             anomalies and alerts computed from these comments.
           </div>
         </div>
@@ -238,8 +202,8 @@ function Metric({ icon: Icon, label, value }) {
 function VideoCard({ video: v, onOpen }) {
   const score = v.avg_score
   return (
-    <button onClick={onOpen} className="group overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03] text-left transition hover:border-white/20">
-      <div className="relative aspect-video bg-black/40">
+    <button onClick={onOpen} className="group overflow-hidden rounded-xl border border-ink-700 bg-ink-900 text-left transition hover:border-ink-600">
+      <div className="relative aspect-video bg-ink-800">
         {v.thumbnail_url ? (
           <img src={v.thumbnail_url} alt="" loading="lazy" referrerPolicy="no-referrer"
                className="size-full object-cover transition group-hover:scale-[1.03]" />
@@ -277,13 +241,13 @@ function VideoComments({ video, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-ink-900" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start gap-3 border-b border-white/10 p-4">
+    <div className="fixed inset-0 z-40 flex justify-end bg-black/50" onClick={onClose}>
+      <div className="flex h-full w-full max-w-xl flex-col border-l border-ink-700 bg-ink-900" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-3 border-b border-ink-700 p-4">
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-stone-100">{video.title}</div>
             <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer"
-               className="mt-1 inline-block text-xs text-amber-400 hover:underline">Watch on YouTube ↗</a>
+               className="mt-1 inline-block link text-xs">Watch on YouTube ↗</a>
           </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-100"><X size={18} /></button>
         </div>

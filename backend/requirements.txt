@@ -4,6 +4,7 @@ uvicorn[standard]==0.53.0
 pydantic-settings==2.15.0
 python-multipart==0.0.32
 httpx==0.28.1
+cryptography==50.0.1
 websockets==17.1
 
 # Data / ML
@@ -16,6 +17,8 @@ pyarrow==25.0.1
 # NLP
 torch==2.14.0
 transformers==5.17.0
+sentencepiece==0.2.2
+protobuf==7.36.2
 huggingface_hub==1.31.0
 nltk==3.10.3
 langdetect==1.0.9

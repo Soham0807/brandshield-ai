@@ -11,6 +11,11 @@ from datetime import timedelta
 from app.db import Database, from_iso, to_iso, utcnow
 
 
+def _hours_until(iso: str) -> str:
+    hours = max(1, round((from_iso(iso) - utcnow()).total_seconds() / 3600))
+    return "hour" if hours == 1 else f"{hours} hours"
+
+
 class AlertEngine:
     def __init__(self, db: Database, runtime, notifier, hub):
         self.db = db
@@ -117,8 +122,8 @@ class AlertEngine:
             if worst["yhat"] < float(t["forecast_score_floor"]):
                 a = await self.raise_alert(
                     "medium", "forecast_decline", "Sentiment expected to decline",
-                    f"Prophet forecasts the sentiment index to fall to {worst['yhat']:.2f} "
-                    f"by {worst['t']} (floor {float(t['forecast_score_floor']):.2f}).",
+                    f"The forecast expects sentiment to dip to {worst['yhat']:.2f} within the next "
+                    f"{_hours_until(worst['t'])} (alert level {float(t['forecast_score_floor']):.2f}).",
                     {"forecast_point": worst},
                     dedupe_key="forecast_decline", cooldown=120,
                 )
@@ -143,7 +148,7 @@ class AlertEngine:
             if m["sentiment"] == "negative" and not m["is_spam"] and m.get("engagement", 0) >= threshold:
                 await self.raise_alert(
                     "high", "viral_negative", "Negative post is going viral",
-                    f"A negative {m['source']} post by @{m.get('author') or 'unknown'} has "
+                    f"A negative {m['source']} post by @{(m.get('author') or 'unknown').lstrip('@')} has "
                     f"{m['engagement']} interactions: \"{m['text'][:180]}\"",
                     {"mention_id": m["id"], "engagement": m["engagement"], "source": m["source"]},
                     dedupe_key=f"viral_negative:{m['id']}", cooldown=0,

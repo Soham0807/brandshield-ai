@@ -1,0 +1,15 @@
+\begin{center}
+\bfseries \fontsize{24}{12} \selectfont Abstract
+\end{center}
+\vspace*{1\baselineskip}
+{\setlength{\parindent}{0pt}\setlength{\parskip}{8pt}
+People no longer complain to a brand privately. They write a comment under a YouTube video, reply on an Instagram post, or leave a one-star review on the app store, and hundreds of other customers read it within minutes. For a business, this public conversation is both the most honest feedback it will ever get and one of the quickest ways its reputation can be damaged. Most small and medium businesses still follow it by hand, and the commercial listening tools that do exist are expensive and mostly report a single ``percentage negative'' figure without saying what is actually wrong.
+
+This project presents \textbf{BrandShield AI}, a real-time brand risk and sentiment intelligence system. It collects public mentions of a brand from YouTube, Instagram, Google News and App Store reviews through their official APIs, passes them through a streaming pipeline, and analyses every comment as it arrives. Sentiment is classified by an ensemble of two BERT-family models, RoBERTa and multilingual XLM-RoBERTa fine-tuned on social-media text, supported by a small Hinglish, Hindi and Marathi opinion lexicon so that code-mixed comments such as ``khana thanda tha, bakwas service'' are handled properly. Each comment is then split into clauses and mapped to business aspects such as delivery, price, service and food quality, so that the brand can see \textit{why} people are unhappy and not just \textit{that} they are. On the analytics side, an Isolation Forest combined with a median/MAD threshold on the share of negative mentions detects unusual surges, Prophet forecasts the short-term sentiment trend, and a five-part brand-risk score from 0 to 100 summarises the situation. Alerts are pushed to a live React dashboard and can also go out by email, Slack, Microsoft Teams or SMS.
+
+On 83 hand-labelled comments in English, Hinglish, Hindi and Marathi, the hybrid classifier reached 83.1\% accuracy and 81.7\% macro-F1, and aspect detection reached an F1 score of 0.806. On 200 real comments sampled at random from the live system it reached 74.0\% accuracy, against 66.5\% for the DistilBERT model we first deployed. Predictions agreed with reviewer-given star ratings on 79.7\% of 483 App Store reviews. The system has analysed more than 12,000 real comments at about 32 ms per comment on an ordinary laptop CPU, and in a controlled test it raised a crisis alert under half a minute after a surge of complaints began.
+
+}
+
+\vspace*{0.6\baselineskip}
+\noindent\textbf{Keywords:} \textit{Brand Reputation Management, Sentiment Analysis, Aspect-Based Sentiment Analysis, BERT, RoBERTa, XLM-RoBERTa, Code-Mixed Text, Hinglish, Anomaly Detection, Isolation Forest, Time-Series Forecasting, Prophet, Real-Time Stream Processing, Social Media Analytics, FastAPI, React}

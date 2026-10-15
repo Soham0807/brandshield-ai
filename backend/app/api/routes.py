@@ -6,20 +6,24 @@ import io
 import json
 from typing import Literal
 
-from urllib.parse import urlencode
+import httpx
+
+from urllib.parse import urlencode, urlparse
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field
 
 from app.db import decode_mention, to_iso, utcnow
 from app.config import write_env
 from app.integrations.instagram import InstagramError
+from app.integrations.instagram_public import InstagramPublicError, normalise_username
 from app.integrations.youtube import YouTubeError
 from app.integrations.tunnel import TunnelError
 from app.nlp.preprocess import preprocess
 
 router = APIRouter(prefix="/api")
+_background_tasks: set[asyncio.Task] = set()  # keeps fire-and-forget tasks alive
 ws_router = APIRouter()
 
 
@@ -299,8 +303,18 @@ async def put_settings(request: Request):
         raise HTTPException(422, str(exc))
     if "sources" in patch or "keywords" in patch or "brand_name" in patch:
         app.wake_collectors()
+    if "aspects" in patch and app.model.ready.is_set():
+        task = asyncio.create_task(app.retag_topics())
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
     await app.hub.broadcast("status", app.public_status())
     return {"config": cfg}
+
+
+@router.get("/settings/topic-presets")
+def topic_presets():
+    from app.nlp.aspects import ASPECT_PRESETS
+    return {"presets": [{"id": k, "label": v["label"], "aspects": v["aspects"]} for k, v in ASPECT_PRESETS.items()]}
 
 
 @router.post("/settings/reset")
@@ -383,7 +397,7 @@ async def run_evaluation(request: Request):
         from scripts.evaluate_model import evaluate_datasets
         _evaluation_task.update(running=True, error=None)
         try:
-            await asyncio.to_thread(evaluate_datasets, app.model, ["domain"], app.settings.evaluation_path, app.aspects)
+            await asyncio.to_thread(evaluate_datasets, app.model, ["domain", "real"], app.settings.evaluation_path, app.aspects)
         except Exception as exc:
             _evaluation_task["error"] = str(exc)
         finally:
@@ -444,6 +458,7 @@ class ApiKeysRequest(BaseModel):
     reddit_client_id: str | None = Field(None, max_length=200)
     reddit_client_secret: str | None = Field(None, max_length=200)
     twitter_bearer_token: str | None = Field(None, max_length=500)
+    apify_token: str | None = Field(None, max_length=200)
     appstore_app_id: str | None = Field(None, max_length=40, pattern=r"^[0-9]*$")
     appstore_country: str | None = Field(None, max_length=2, pattern=r"^[A-Za-z]*$")
 
@@ -454,7 +469,7 @@ def api_keys(request: Request):
     s = core(request).settings
     return {"configured": {name: bool(getattr(s, name)) for name in
                            ("youtube_api_key", "reddit_client_id", "reddit_client_secret",
-                            "twitter_bearer_token", "instagram_app_id", "instagram_app_secret")},
+                            "twitter_bearer_token", "apify_token", "instagram_app_id", "instagram_app_secret")},
             "appstore_app_id": s.appstore_app_id, "appstore_country": s.appstore_country}
 
 
@@ -575,6 +590,114 @@ async def use_live_only(request: Request, body: LiveOnlyRequest):
     if not body.confirm:
         raise HTTPException(400, "Set confirm=true to turn off the simulator and delete simulated data")
     return await core(request).use_live_data_only(body.rename_brand)
+
+
+# ---------------------------------------------------------------------------
+# Public Instagram pages of any brand (no Instagram login, via Apify)
+# ---------------------------------------------------------------------------
+class InstagramPageRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=200, description="@handle or profile URL")
+    set_brand: bool = True
+
+
+@router.get("/instagram/pages")
+def instagram_pages(request: Request):
+    app = core(request)
+    return {
+        "configured": app.instagram_pages.configured,
+        "pages": app.instagram_pages.list_pages(),
+        "collector": app.collectors["instagram_pages"].status(),
+        "source_enabled": bool(app.runtime.get()["sources"].get("instagram_pages")),
+    }
+
+
+# Instagram's CDN refuses to show its images on other sites, so they are relayed.
+# Only Instagram/Facebook CDN hosts are allowed, so this cannot fetch arbitrary URLs.
+_IMAGE_HOSTS = (".cdninstagram.com", ".fbcdn.net")
+
+
+@router.get("/instagram/image", include_in_schema=False)
+async def instagram_image(url: str = Query(..., max_length=3000)):
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not (parsed.hostname or "").endswith(_IMAGE_HOSTS):
+        raise HTTPException(400, "Only Instagram image URLs are allowed")
+    try:
+        async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+    except httpx.HTTPError:
+        raise HTTPException(502, "Could not load the image")
+    content_type = resp.headers.get("content-type", "")
+    if resp.status_code != 200 or not content_type.startswith("image/"):
+        raise HTTPException(404, "Image not available")
+    return Response(resp.content, media_type=content_type, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@router.get("/instagram/pages/posts")
+def instagram_page_posts(request: Request, username: str | None = Query(None, max_length=30),
+                         limit: int = Query(60, ge=1, le=200)):
+    return {"items": core(request).instagram_pages.posts(username.lower() if username else None, limit)}
+
+
+async def _sync_page_in_background(app, username: str, force: bool) -> None:
+    try:
+        await app.sync_instagram_page(username, force)
+    except Exception as exc:  # shown on the page card via last_error
+        app.instagram_pages.set_error(username, str(exc) or type(exc).__name__)
+    await app.hub.broadcast("status", app.public_status())
+    await app.hub.broadcast("instagram_pages", {"username": username})
+
+
+@router.post("/instagram/pages")
+async def add_instagram_page(request: Request, body: InstagramPageRequest):
+    """Look up a public page, save it, and import its comments in the background."""
+    app = core(request)
+    _require_model(app)
+    if not app.instagram_pages.configured:
+        raise HTTPException(503, "Monitoring public Instagram pages isn't switched on for this installation yet.")
+    try:
+        username = normalise_username(body.query)
+    except InstagramPublicError as exc:
+        raise HTTPException(422, str(exc))
+    try:
+        async with httpx.AsyncClient(timeout=app.settings.apify_timeout_seconds) as client:
+            profile = await app.instagram_pages.fetch_profile(client, username)
+    except InstagramPublicError as exc:
+        raise HTTPException(422 if "No public" in str(exc) or "private" in str(exc) else 502, str(exc))
+    page = app.instagram_pages.save_page(profile)
+    patch = {"sources": {"instagram_pages": True}}
+    if body.set_brand:
+        patch["brand_name"] = profile.get("fullName") or username
+        patch["keywords"] = sorted({username, f"@{username}", profile.get("fullName") or username})
+    app.runtime.update(patch)
+    task = asyncio.create_task(_sync_page_in_background(app, username, True))
+    _background_tasks.add(task)  # keep a reference so the task is not garbage-collected
+    task.add_done_callback(_background_tasks.discard)
+    await app.hub.broadcast("status", app.public_status())
+    return {"page": page, "importing": True}
+
+
+@router.post("/instagram/pages/{username}/sync")
+async def sync_instagram_page(request: Request, username: str, body: SyncRequest):
+    app = core(request)
+    _require_model(app)
+    username = username.lower()
+    if not app.instagram_pages.get_page(username):
+        raise HTTPException(404, "Page not found")
+    try:
+        queued = await app.sync_instagram_page(username, body.force)
+    except InstagramPublicError as exc:
+        raise HTTPException(502, str(exc))
+    return {"queued_comments": queued, "page": app.instagram_pages.get_page(username)}
+
+
+@router.delete("/instagram/pages/{username}")
+async def remove_instagram_page(request: Request, username: str, delete_data: bool = False):
+    app = core(request)
+    if not app.instagram_pages.remove_page(username.lower(), delete_data):
+        raise HTTPException(404, "Page not found")
+    app.analytics._cache.clear()
+    await app.hub.broadcast("status", app.public_status())
+    return {"removed": username.lower(), "deleted_data": delete_data}
 
 
 # ---------------------------------------------------------------------------

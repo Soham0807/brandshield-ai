@@ -33,6 +33,47 @@ DEFAULT_ASPECTS: dict[str, list[str]] = {
                   "leaking", "box", "lid"],
 }
 
+GENERAL_ASPECTS: dict[str, list[str]] = {
+    "product": ["product", "products", "design", "feature", "features", "model", "version", "update",
+                "launch", "release", "camera", "screen", "display", "battery", "size", "colour", "color"],
+    "quality": ["quality", "broken", "broke", "defective", "faulty", "damaged", "durable", "build",
+                "material", "cheap quality", "stopped working", "doesn't work", "not working", "original"],
+    "price": ["price", "prices", "pricing", "expensive", "overpriced", "cheap", "costly", "cost",
+              "value for money", "worth", "affordable", "discount", "offer", "sale", "mehenga", "mehnga", "paisa"],
+    "customer_support": ["support", "customer service", "customer care", "customer support", "helpline",
+                         "complaint", "complaints", "refund", "return", "replacement", "warranty", "response",
+                         "respond", "responding", "agent", "ticket", "no reply", "service"],
+    "delivery": ["delivery", "delivered", "deliver", "shipping", "shipped", "courier", "late", "delayed",
+                 "delay", "arrived", "never arrived", "tracking", "wrong order", "missing item", "on time"],
+    "app_experience": ["app", "website", "online", "login", "payment", "upi", "checkout", "crash", "crashed",
+                       "glitch", "bug", "bugs", "slow", "loading", "account", "notification", "ios", "android"],
+    "trust": ["trust", "scam", "fraud", "cheated", "lied", "lies", "fake", "misleading", "boycott",
+              "privacy", "ethics", "unethical", "reputation"],
+    "marketing": ["ad", "ads", "advert", "advertisement", "campaign", "collab", "influencer", "giveaway",
+                  "contest", "reel", "content", "meme", "brand ambassador"],
+}
+
+TECH_ASPECTS: dict[str, list[str]] = {
+    "performance": ["performance", "fast", "speed", "slow", "lag", "laggy", "smooth", "processor", "chip",
+                    "heating", "overheating", "hang", "hangs"],
+    "battery": ["battery", "charge", "charging", "charger", "drain", "drains", "backup", "battery life"],
+    "camera": ["camera", "photo", "photos", "video", "selfie", "lens", "zoom"],
+    "design": ["design", "look", "looks", "colour", "color", "size", "weight", "build", "premium", "notch"],
+    "software": ["software", "update", "ios", "android", "os", "bug", "bugs", "glitch", "feature", "features", "ai"],
+    "price": ["price", "expensive", "overpriced", "cheap", "costly", "worth", "value for money",
+              "affordable", "discount", "mehenga"],
+    "customer_support": ["support", "customer service", "customer care", "service center", "repair",
+                         "warranty", "refund", "replacement", "complaint"],
+    "competition": ["samsung", "google", "pixel", "xiaomi", "oneplus", "apple", "iphone", "android",
+                    "copy", "copied", "better than", "worse than"],
+}
+
+ASPECT_PRESETS: dict[str, dict] = {
+    "general": {"label": "General brand", "aspects": GENERAL_ASPECTS},
+    "tech": {"label": "Tech / gadget brand", "aspects": TECH_ASPECTS},
+    "cafe": {"label": "Café & restaurant", "aspects": DEFAULT_ASPECTS},
+}
+
 CLAUSE_SPLIT_RE = re.compile(
     r"[.!?;\n]+|\b(?:but|however|although|though|whereas|except|lekin|magar|par|pan)\b",
     re.I,

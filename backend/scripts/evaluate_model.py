@@ -4,16 +4,22 @@ Reports accuracy, precision, recall, F1 (macro + per class), confusion matrix
 and inference time, for:
 
 * ``domain``    - hand-labelled brand comments incl. Hinglish / Hindi / Marathi
-                  (backend/eval/domain_labeled.csv)
+                  (backend/eval/domain_labeled.csv), written by the team
+* ``real``      - 200 real collected comments (110 YouTube, 60 Instagram, 30 news),
+                  sampled at random from the live database and labelled by hand
+                  (backend/eval/real_comments_labeled.csv)
 * ``tweet_eval`` - public TweetEval sentiment benchmark (test split, downloaded
                   from the Hugging Face Hub, ~12k tweets; use --limit)
 
-It also compares the raw DistilBERT output against the hybrid model
-(DistilBERT + regional lexicon + neutral margin) as an ablation study.
+It also compares the raw model output (the averaged ensemble) against the
+hybrid model (ensemble + regional lexicon + neutral margin) as an ablation study.
 
 Usage (from the backend folder):
     python -m scripts.evaluate_model
-    python -m scripts.evaluate_model --datasets domain tweet_eval --limit 2000
+    python -m scripts.evaluate_model --datasets domain real tweet_eval --limit 2000
+
+Note: the Cardiff NLP models were trained on TweetEval's training split, so
+TweetEval test scores are optimistic compared with the other two sets.
 """
 
 import argparse
@@ -35,6 +41,9 @@ LABELS = ["negative", "neutral", "positive"]
 def load_dataset(name: str, limit: int | None) -> pd.DataFrame:
     if name == "domain":
         df = pd.read_csv(BACKEND / "eval" / "domain_labeled.csv").fillna({"aspects": ""})
+    elif name == "real":
+        df = pd.read_csv(BACKEND / "eval" / "real_comments_labeled.csv")
+        df["aspects"] = None
     elif name == "tweet_eval":
         from huggingface_hub import hf_hub_download
 
@@ -106,7 +115,7 @@ def evaluate_datasets(model, datasets: list[str], output: Path, extractor=None, 
             "model": model.active_model,
             "inference_ms_per_text": round(1000 * elapsed / max(len(df), 1), 2),
             "hybrid": classification_report(df["label"], hybrid_pred),
-            "distilbert_only": classification_report(df["label"], baseline_pred),
+            "model_only": classification_report(df["label"], baseline_pred),
             "evaluated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
         if extractor is not None:
@@ -126,7 +135,7 @@ def main():
     from app.nlp.sentiment import SentimentModel
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--datasets", nargs="+", default=["domain"], choices=["domain", "tweet_eval"])
+    parser.add_argument("--datasets", nargs="+", default=["domain", "real"], choices=["domain", "real", "tweet_eval"])
     parser.add_argument("--limit", type=int, default=None, help="max samples per dataset")
     args = parser.parse_args()
 
@@ -137,7 +146,7 @@ def main():
     for name in args.datasets:
         r = results["datasets"][name]
         print(f"\n=== {name} ({r['samples']} samples, {r['inference_ms_per_text']} ms/text) ===")
-        for variant in ("distilbert_only", "hybrid"):
+        for variant in ("model_only", "hybrid"):
             m = r[variant]
             print(f"{variant:>16}: accuracy={m['accuracy']:.3f} precision={m['precision_macro']:.3f} "
                   f"recall={m['recall_macro']:.3f} f1={m['f1_macro']:.3f}")

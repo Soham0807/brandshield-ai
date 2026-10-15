@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import './index.css'
 import './lib/charts'
 import { LiveProvider } from './lib/live'
+import { ThemeProvider } from './lib/theme'
 import Alerts from './pages/Alerts'
 import Analytics from './pages/Analytics'
 import Analyze from './pages/Analyze'
@@ -13,11 +14,13 @@ import Dashboard from './pages/Dashboard'
 import Instagram from './pages/Instagram'
 import Mentions from './pages/Mentions'
 import SettingsPage from './pages/Settings'
+import Setup from './pages/Setup'
 import YouTube from './pages/YouTube'
 import System from './pages/System'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <ThemeProvider>
     <LiveProvider>
       <BrowserRouter>
         <Routes>
@@ -32,9 +35,11 @@ createRoot(document.getElementById('root')).render(
             <Route path="analyze" element={<Analyze />} />
             <Route path="system" element={<System />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="setup" element={<Setup />} />
           </Route>
         </Routes>
       </BrowserRouter>
     </LiveProvider>
+    </ThemeProvider>
   </StrictMode>,
 )

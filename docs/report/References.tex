@@ -1,0 +1,87 @@
+% Remove any automatic bibliography title and formatting
+\makeatletter
+\renewenvironment{thebibliography}[1]
+     {\list{\@biblabel{\@arabic\c@enumiv}}%
+           {\settowidth\labelwidth{\@biblabel{#1}}%
+            \leftmargin\labelwidth
+            \advance\leftmargin\labelsep
+            \@openbib@code
+            \usecounter{enumiv}%
+            \let\p@enumiv\@empty
+            \renewcommand\theenumiv{\@arabic\c@enumiv}}%
+      \sloppy
+      \clubpenalty4000
+      \@clubpenalty \clubpenalty
+      \widowpenalty4000%
+      \sfcode`\.\@m}
+     {\def\@noitemerr
+       {\@latex@warning{Empty `thebibliography' environment}}%
+      \endlist}
+\makeatother
+\begin{thebibliography}{99}
+% Chicago style references
+
+\bibitem{vaswani2017}
+Vaswani, Ashish, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin. ``Attention Is All You Need.'' In \textit{Advances in Neural Information Processing Systems 30 (NeurIPS)}, 5998--6008. 2017.
+
+\bibitem{devlin2019}
+Devlin, Jacob, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. ``BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.'' In \textit{Proceedings of NAACL-HLT 2019}, 4171--4186. 2019.
+
+\bibitem{sanh2019}
+Sanh, Victor, Lysandre Debut, Julien Chaumond, and Thomas Wolf. ``DistilBERT, a Distilled Version of BERT: Smaller, Faster, Cheaper and Lighter.'' \textit{arXiv preprint arXiv:1910.01108} (2019).
+
+\bibitem{liu2019roberta}
+Liu, Yinhan, Myle Ott, Naman Goyal, Jingfei Du, Mandar Joshi, Danqi Chen, Omer Levy, Mike Lewis, Luke Zettlemoyer, and Veselin Stoyanov. ``RoBERTa: A Robustly Optimized BERT Pretraining Approach.'' \textit{arXiv preprint arXiv:1907.11692} (2019).
+
+\bibitem{conneau2020}
+Conneau, Alexis, Kartikay Khandelwal, Naman Goyal, Vishrav Chaudhary, Guillaume Wenzek, Francisco Guzm\'an, Edouard Grave, Myle Ott, Luke Zettlemoyer, and Veselin Stoyanov. ``Unsupervised Cross-lingual Representation Learning at Scale.'' In \textit{Proceedings of the 58th Annual Meeting of the ACL}, 8440--8451. 2020.
+
+\bibitem{barbieri2022}
+Barbieri, Francesco, Luis Espinosa Anke, and Jose Camacho-Collados. ``XLM-T: Multilingual Language Models in Twitter for Sentiment Analysis and Beyond.'' In \textit{Proceedings of the Thirteenth Language Resources and Evaluation Conference (LREC)}. 2022.
+
+\bibitem{loureiro2022}
+Loureiro, Daniel, Francesco Barbieri, Leonardo Neves, Luis Espinosa Anke, and Jose Camacho-Collados. ``TimeLMs: Diachronic Language Models from Twitter.'' In \textit{Proceedings of the 60th Annual Meeting of the ACL: System Demonstrations}. 2022.
+
+\bibitem{barbieri2020}
+Barbieri, Francesco, Jose Camacho-Collados, Luis Espinosa-Anke, and Leonardo Neves. ``TweetEval: Unified Benchmark and Comparative Evaluation for Tweet Classification.'' In \textit{Findings of the Association for Computational Linguistics: EMNLP 2020}, 1644--1650. 2020.
+
+\bibitem{pang2002}
+Pang, Bo, Lillian Lee, and Shivakumar Vaithyanathan. ``Thumbs up? Sentiment Classification using Machine Learning Techniques.'' In \textit{Proceedings of EMNLP 2002}, 79--86. 2002.
+
+\bibitem{liu2012}
+Liu, Bing. \textit{Sentiment Analysis and Opinion Mining}. Synthesis Lectures on Human Language Technologies. Morgan \& Claypool Publishers, 2012.
+
+\bibitem{hutto2014}
+Hutto, C. J., and Eric Gilbert. ``VADER: A Parsimonious Rule-Based Model for Sentiment Analysis of Social Media Text.'' In \textit{Proceedings of the Eighth International AAAI Conference on Weblogs and Social Media (ICWSM)}. 2014.
+
+\bibitem{joshi2016}
+Joshi, Aditya, Ameya Prabhu, Manish Shrivastava, and Vasudeva Varma. ``Towards Sub-Word Level Compositions for Sentiment Analysis of Hindi-English Code Mixed Text.'' In \textit{Proceedings of COLING 2016}, 2482--2491. 2016.
+
+\bibitem{patwa2020}
+Patwa, Parth, Gustavo Aguilar, Sudipta Kar, Suraj Pandey, Srinivas PYKL, Bj\"orn Gamb\"ack, Tanmoy Chakraborty, Thamar Solorio, and Amitava Das. ``SemEval-2020 Task 9: Overview of Sentiment Analysis of Code-Mixed Tweets.'' In \textit{Proceedings of the Fourteenth Workshop on Semantic Evaluation}, 774--790. 2020.
+
+\bibitem{pontiki2014}
+Pontiki, Maria, Dimitris Galanis, John Pavlopoulos, Harris Papageorgiou, Ion Androutsopoulos, and Suresh Manandhar. ``SemEval-2014 Task 4: Aspect Based Sentiment Analysis.'' In \textit{Proceedings of the 8th International Workshop on Semantic Evaluation (SemEval 2014)}, 27--35. 2014.
+
+\bibitem{liu2008}
+Liu, Fei Tony, Kai Ming Ting, and Zhi-Hua Zhou. ``Isolation Forest.'' In \textit{Proceedings of the Eighth IEEE International Conference on Data Mining (ICDM)}, 413--422. 2008.
+
+\bibitem{chandola2009}
+Chandola, Varun, Arindam Banerjee, and Vipin Kumar. ``Anomaly Detection: A Survey.'' \textit{ACM Computing Surveys} 41, no. 3 (2009): 1--58.
+
+\bibitem{rousseeuw1993}
+Rousseeuw, Peter J., and Christophe Croux. ``Alternatives to the Median Absolute Deviation.'' \textit{Journal of the American Statistical Association} 88, no. 424 (1993): 1273--1283.
+
+\bibitem{taylor2018}
+Taylor, Sean J., and Benjamin Letham. ``Forecasting at Scale.'' \textit{The American Statistician} 72, no. 1 (2018): 37--45.
+
+\bibitem{hyndman2021}
+Hyndman, Rob J., and George Athanasopoulos. \textit{Forecasting: Principles and Practice}. 3rd ed. Melbourne: OTexts, 2021.
+
+\bibitem{kreps2011}
+Kreps, Jay, Neha Narkhede, and Jun Rao. ``Kafka: A Distributed Messaging System for Log Processing.'' In \textit{Proceedings of the NetDB Workshop}. 2011.
+
+\bibitem{wolf2020}
+Wolf, Thomas, et al. ``Transformers: State-of-the-Art Natural Language Processing.'' In \textit{Proceedings of EMNLP 2020: System Demonstrations}, 38--45. 2020.
+
+\end{thebibliography}

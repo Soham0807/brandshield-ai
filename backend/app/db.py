@@ -91,6 +91,37 @@ CREATE TABLE IF NOT EXISTS instagram_media (
 );
 CREATE INDEX IF NOT EXISTS idx_media_user ON instagram_media(ig_user_id, timestamp);
 
+CREATE TABLE IF NOT EXISTS ig_pages (
+    username        TEXT PRIMARY KEY,
+    full_name       TEXT,
+    biography       TEXT,
+    profile_pic_url TEXT,
+    followers_count INTEGER,
+    follows_count   INTEGER,
+    posts_count     INTEGER,
+    verified        INTEGER,
+    category        TEXT,
+    added_at        TEXT NOT NULL,
+    last_sync_at    TEXT,
+    last_error      TEXT
+);
+
+CREATE TABLE IF NOT EXISTS ig_page_posts (
+    id              TEXT PRIMARY KEY,
+    username        TEXT NOT NULL,
+    shortcode       TEXT,
+    caption         TEXT,
+    media_type      TEXT,
+    display_url     TEXT,
+    permalink       TEXT,
+    timestamp       TEXT,
+    like_count      INTEGER,
+    comments_count  INTEGER,
+    synced_comments INTEGER,
+    updated_at      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ig_page_posts_user ON ig_page_posts(username, timestamp);
+
 CREATE TABLE IF NOT EXISTS youtube_channels (
     channel_id       TEXT PRIMARY KEY,
     handle           TEXT,
@@ -235,6 +266,14 @@ class Database:
             self._conn.executemany(sql, values)
             self._conn.commit()
             return self._conn.total_changes - before
+
+    def update_aspects(self, rows: list[tuple[str, str]]) -> None:
+        """rows: (aspects_json, mention_id)"""
+        if not rows:
+            return
+        with self._lock:
+            self._conn.executemany("UPDATE mentions SET aspects = ? WHERE id = ?", rows)
+            self._conn.commit()
 
     def existing_ids(self, ids: list[str]) -> set[str]:
         if not ids:

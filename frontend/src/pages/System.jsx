@@ -1,10 +1,17 @@
 import { Clock, Cpu, Layers, Loader2, Play, Radio, Timer, Zap } from 'lucide-react'
 import { useState } from 'react'
-import { Card, Empty, ErrorBox, Spinner, Stat } from '../components/ui'
+import { Card, Empty, ErrorBox, Spinner, Stat, Tip } from '../components/ui'
+import { METRIC_HELP } from '../lib/help'
 import { api } from '../lib/api'
 import { num } from '../lib/format'
 import { useApi } from '../lib/hooks'
 import { useLive, useLiveEvent } from '../lib/live'
+
+const DATASET_TITLES = {
+  real: 'Real comments (200 from YouTube, Instagram and news, hand-labelled)',
+  domain: 'Team test set (83 brand comments incl. Hinglish, Hindi, Marathi)',
+  tweet_eval: 'TweetEval benchmark',
+}
 
 export default function System() {
   const { metrics: liveMetrics } = useLive()
@@ -33,19 +40,19 @@ export default function System() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-stone-50">Performance</h1>
+        <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Performance</h1>
         <p className="text-sm text-stone-500">Live pipeline metrics and model evaluation (accuracy, precision, recall, F1)</p>
       </div>
 
       {!m ? <Spinner /> : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <Stat icon={Zap} tone="amber" label="Throughput (msg/s, 1 min)" value={num(m.throughput_per_sec, 2)} />
-            <Stat icon={Timer} tone="sky" label="Latency p50 (ingest → stored)" value={m.latency_ms.p50 !== null ? `${num(m.latency_ms.p50)} ms` : '–'} />
-            <Stat icon={Clock} tone="violet" label="Latency p95" value={m.latency_ms.p95 !== null ? `${num(m.latency_ms.p95)} ms` : '–'} />
-            <Stat icon={Cpu} tone="green" label="Model inference / text" value={`${num(m.model.avg_inference_ms_per_text, 1)} ms`} />
+            <Stat icon={Zap} tone="amber" label="Throughput (msg/s, 1 min)" value={m.throughput_per_sec} digits={2} />
+            <Stat icon={Timer} tone="sky" label="Latency p50 (ingest → stored)" value={m.latency_ms.p50} suffix=" ms" />
+            <Stat icon={Clock} tone="violet" label="Latency p95" value={m.latency_ms.p95} suffix=" ms" />
+            <Stat icon={Cpu} tone="green" label="Model inference / text" value={m.model.avg_inference_ms_per_text} digits={1} suffix=" ms" />
             <Stat icon={Layers} tone="orange" label="Queue depth" value={m.queue_depth ?? 'n/a'} />
-            <Stat icon={Radio} tone="red" label="Errors" value={num(m.errors_total)} />
+            <Stat icon={Radio} tone="red" label="Errors" value={m.errors_total} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -101,19 +108,19 @@ export default function System() {
 
       <Card
         title="Model evaluation"
-        subtitle="Labelled test sets · hybrid = DistilBERT + regional lexicon + neutral margin"
+        subtitle="Labelled test sets · hybrid = XLM-RoBERTa + RoBERTa ensemble + regional lexicon + neutral margin"
         action={
           <button className="btn-primary" onClick={runEvaluation} disabled={running}>
-            {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Run on domain set
+            {running ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />} Run evaluation
           </button>
         }
       >
         <ErrorBox message={error} />
         {!evaluation.data ? <Spinner /> : !evaluation.data.available ? (
-          <Empty>No evaluation yet. Click “Run on domain set” or run <code>python -m scripts.evaluate_model</code>.</Empty>
+          <Empty>No evaluation yet. Click “Run evaluation” or run <code>python -m scripts.evaluate_model</code>.</Empty>
         ) : (
           <div className="space-y-6">
-            {Object.entries(evaluation.data.datasets).map(([name, d]) => <EvalBlock key={name} name={name} d={d} />)}
+            {Object.entries(evaluation.data.datasets).sort(([a], [b]) => (a === 'real' ? -1 : b === 'real' ? 1 : 0)).map(([name, d]) => <EvalBlock key={name} name={name} d={d} />)}
           </div>
         )}
       </Card>
@@ -122,18 +129,18 @@ export default function System() {
 }
 
 function EvalBlock({ name, d }) {
-  const rows = [['DistilBERT only', d.distilbert_only], ['Hybrid (deployed)', d.hybrid]]
+  const rows = [['Models only', d.model_only ?? d.distilbert_only], ['Hybrid (deployed)', d.hybrid]].filter(([, v]) => v)
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-2">
-        <h3 className="font-semibold text-stone-100">{name === 'domain' ? 'Domain dataset (brand comments, multilingual)' : 'TweetEval benchmark'}</h3>
+        <h3 className="font-semibold text-stone-100">{DATASET_TITLES[name] || name}</h3>
         <span className="text-xs text-stone-500">{d.samples} samples · {d.inference_ms_per_text} ms/text · {d.evaluated_at}</span>
       </div>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase text-stone-500">
-              <th className="py-2">Variant</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1 (macro)</th><th>F1 (weighted)</th>
+              <th className="py-2"><Tip text="Hybrid = AI model plus our Hinglish/Hindi/Marathi word list. Model only = the AI model alone. Comparing them shows what the word list adds.">Variant</Tip></th><th><Tip text={METRIC_HELP.accuracy}>Accuracy</Tip></th><th><Tip text={METRIC_HELP.precision}>Precision</Tip></th><th><Tip text={METRIC_HELP.recall}>Recall</Tip></th><th><Tip text={METRIC_HELP.f1}>F1 (macro)</Tip></th><th><Tip text={METRIC_HELP.f1_weighted}>F1 (weighted)</Tip></th>
             </tr>
           </thead>
           <tbody>
@@ -143,7 +150,7 @@ function EvalBlock({ name, d }) {
                 <td className="text-stone-100">{(r.accuracy * 100).toFixed(1)}%</td>
                 <td className="text-stone-100">{(r.precision_macro * 100).toFixed(1)}%</td>
                 <td className="text-stone-100">{(r.recall_macro * 100).toFixed(1)}%</td>
-                <td className="font-semibold text-amber-300">{(r.f1_macro * 100).toFixed(1)}%</td>
+                <td className="font-semibold text-stone-50 underline decoration-red-500 decoration-2 underline-offset-4">{(r.f1_macro * 100).toFixed(1)}%</td>
                 <td className="text-stone-100">{(r.f1_weighted * 100).toFixed(1)}%</td>
               </tr>
             ))}
@@ -154,7 +161,7 @@ function EvalBlock({ name, d }) {
         <div>
           <div className="label">Per class (hybrid)</div>
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-stone-500"><th className="py-1">Class</th><th>P</th><th>R</th><th>F1</th><th>n</th></tr></thead>
+            <thead><tr className="text-left text-xs text-stone-500"><th className="py-1">Class</th><th><Tip text={METRIC_HELP.precision}>P</Tip></th><th><Tip text={METRIC_HELP.recall}>R</Tip></th><th><Tip text={METRIC_HELP.f1}>F1</Tip></th><th><Tip text={METRIC_HELP.support}>n</Tip></th></tr></thead>
             <tbody>
               {Object.entries(d.hybrid.per_class).map(([k, v]) => (
                 <tr key={k} className="border-t border-ink-700">
@@ -173,7 +180,7 @@ function EvalBlock({ name, d }) {
           )}
         </div>
         <div>
-          <div className="label">Confusion matrix (rows = true, columns = predicted)</div>
+          <div className="label"><Tip text="Each row is the true label given by a person, each column is what the model predicted. Numbers on the diagonal are correct. The key cell: negative comments predicted as positive, which would hide an unhappy customer.">Confusion matrix (rows = true, columns = predicted)</Tip></div>
           <Confusion cm={d.hybrid.confusion_matrix} />
         </div>
       </div>
@@ -194,7 +201,7 @@ function Confusion({ cm }) {
             <td className="pr-2 text-xs capitalize text-stone-500">{cm.labels[i]}</td>
             {row.map((v, j) => (
               <td key={j} className="size-14 rounded text-center font-medium"
-                  style={{ background: i === j ? `rgba(16,185,129,${0.1 + (0.6 * v) / max})` : `rgba(239,68,68,${(0.5 * v) / max})` }}>
+                  style={{ background: i === j ? `rgba(62,124,89,${0.1 + (0.6 * v) / max})` : `rgba(210,56,30,${(0.5 * v) / max})` }}>
                 {v}
               </td>
             ))}

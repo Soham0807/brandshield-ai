@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, Empty, ErrorBox, Segmented, SeverityBadge, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-import { formatTime, SEVERITY_STYLES, timeAgo } from '../lib/format'
+import { SEVERITY_STYLES, formatTime, humanizeAlert, timeAgo } from '../lib/format'
 import { useApi } from '../lib/hooks'
 import { useLiveEvent } from '../lib/live'
 
@@ -41,7 +41,7 @@ export default function Alerts() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-stone-50">Alerts</h1>
+          <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Alerts</h1>
           <p className="text-sm text-stone-500">AI-detected issues requiring your attention</p>
         </div>
         <div className="flex gap-2">
@@ -73,17 +73,17 @@ export default function Alerts() {
         {!data ? <Spinner /> : !data.items.length ? <Empty>No alerts here.</Empty> : (
           <div className="space-y-2">
             {data.items.map((a) => (
-              <div key={a.id} className="rounded-xl border border-ink-700 bg-ink-850 p-4">
+              <div key={a.id} className="border-b border-ink-700 py-4 first:pt-1 last:border-0">
                 <div className="flex flex-wrap items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <SeverityBadge severity={a.severity} />
-                      <span className="rounded bg-ink-700 px-1.5 py-0.5 text-[10px] uppercase text-stone-400">{a.type.replace(/_/g, ' ')}</span>
+                      <span className="font-mono text-[10px] uppercase tracking-[.12em] text-stone-500">{a.type.replace(/_/g, ' ')}</span>
                       <span className="text-xs text-stone-500" title={formatTime(a.created_at, true)}>{timeAgo(a.created_at)}</span>
                       {a.status !== 'open' && <span className="text-xs capitalize text-stone-500">· {a.status}</span>}
                     </div>
-                    <h3 className="mt-2 font-medium text-stone-100">{a.title}</h3>
-                    <p className="mt-1 text-sm text-stone-400">{a.message}</p>
+                    <h3 className="display mt-2 text-[19px] font-semibold text-stone-50">{a.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-stone-400">{humanizeAlert(a.message)}</p>
                     {a.meta?.delivery && (
                       <p className="mt-1 text-xs text-stone-500">
                         Delivered: {Object.entries(a.meta.delivery).map(([k, v]) => `${k} (${v})`).join(', ')}

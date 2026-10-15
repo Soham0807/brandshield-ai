@@ -3,7 +3,7 @@
 #
 #   sudo bash deploy/install.sh yourdomain.me you@email.com
 #
-# Sets up Python + the app, downloads the DistilBERT model, runs it as a
+# Sets up Python + the app, downloads the sentiment models, runs it as a
 # systemd service, and puts Caddy in front for automatic HTTPS and a password
 # gate (the app has no user accounts yet, so the gate is what keeps it private).
 
@@ -71,7 +71,8 @@ sudo -u "$APP_USER" "$APP_DIR/venv/bin/python" -c \
 echo "==> 5/8  Downloading the sentiment model (~500 MB, once)"
 sudo -u "$APP_USER" HF_HOME="$APP_DIR/.cache/huggingface" "$APP_DIR/venv/bin/python" - <<'PY'
 from transformers import pipeline
-pipeline("text-classification", model="tabularisai/multilingual-sentiment-analysis", top_k=None)
+for m in ("cardiffnlp/twitter-xlm-roberta-base-sentiment", "cardiffnlp/twitter-roberta-base-sentiment-latest"):
+    pipeline("text-classification", model=m, top_k=None)
 print("model ready")
 PY
 

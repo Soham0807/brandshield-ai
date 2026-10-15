@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/wh
     && python -c "import nltk; [nltk.download(p, quiet=True) for p in ('stopwords','wordnet','omw-1.4')]"
 
 # bake the sentiment model into the image so the Space starts fast
-RUN python -c "from transformers import pipeline; pipeline('text-classification', model='tabularisai/multilingual-sentiment-analysis', top_k=None)"
+RUN python -c "from transformers import pipeline; [pipeline('text-classification', model=m, top_k=None) for m in ('cardiffnlp/twitter-xlm-roberta-base-sentiment', 'cardiffnlp/twitter-roberta-base-sentiment-latest')]"
 
 COPY backend/ .
 COPY --from=ui /ui/dist /app/frontend/dist

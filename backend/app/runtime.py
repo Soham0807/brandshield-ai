@@ -26,6 +26,7 @@ def build_defaults(settings: Settings) -> dict:
             "youtube": settings.enable_youtube,
             "appstore": settings.enable_appstore,
             "instagram": False,  # switched on automatically when an account is connected
+            "instagram_pages": False,  # switched on automatically when a public page is added
         },
         "simulator_rate_per_min": settings.simulator_rate_per_min,
         "aspects": copy.deepcopy(DEFAULT_ASPECTS),

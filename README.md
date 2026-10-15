@@ -14,7 +14,7 @@ short_description: Real-time brand risk and sentiment intelligence
 Final year project · T.Y. A (AIDS) · K.K. Wagh Institute of Engineering Education & Research, Nashik
 Team (PID 02): Soham Borse, Tanish Bantwal, Aryan Baakle, Omsingh Rajput · Guide: Dr. Darshan Medhane
 
-BrandShield AI monitors social media mentions of a brand in real time. It classifies sentiment with DistilBERT, finds which
+BrandShield AI monitors social media mentions of a brand in real time. It classifies sentiment with an ensemble of BERT-family models (RoBERTa + XLM-RoBERTa), finds which
 aspects people complain about, detects crises with Isolation Forest, forecasts sentiment with Prophet, and raises alerts.
 
 ## Quick start (Windows)
@@ -26,7 +26,7 @@ start.bat
 ```
 
 The script installs everything, builds the dashboard, and opens **http://127.0.0.1:8000**.
-The first start downloads the DistilBERT model (~550 MB) and generates 3 days of demo history (about 3–5 minutes).
+The first start downloads the two sentiment models (~1.6 GB) and generates 3 days of demo history (about 3–5 minutes).
 
 ### Manual start / development
 
@@ -124,7 +124,7 @@ The GitHub Student Developer Pack covers the cost: $200 DigitalOcean credit plus
 ```
 Collectors ──► Message bus ──► Stream processor ──────────────► SQLite ──► FastAPI (REST + WebSocket) ──► React dashboard
  simulator      Kafka or         preprocessing                               │
- Google News    in-memory        DistilBERT sentiment                        ├─ Isolation Forest + adaptive z-score (every 30 s)
+ Google News    in-memory        RoBERTa ensemble                            ├─ Isolation Forest + adaptive z-score (every 30 s)
  Reddit         queue            aspect-based sentiment                      ├─ Prophet forecast (every 5 min)
  Twitter / X                     spam filter                                 ├─ Risk score (5 signals)
  Instagram                                                                   └─ Alert engine ─► dashboard, browser push,
@@ -136,7 +136,7 @@ Collectors ──► Message bus ──► Stream processor ──────�
 | Data collection | `backend/app/collectors/` – simulator, Google News RSS, Reddit, Twitter API v2; `backend/app/integrations/instagram.py` – real Instagram accounts via OAuth login; CSV upload; `POST /api/ingest` |
 | Ingestion & streaming | `backend/app/pipeline/bus.py` – Apache Kafka (aiokafka), falls back to an asyncio queue |
 | Preprocessing | `backend/app/nlp/preprocess.py` – URL/mention/hashtag removal, emoji normalisation, tokenisation, NLTK stop words, WordNet lemmatisation, language detection, spam detection |
-| Sentiment analysis | `backend/app/nlp/sentiment.py` – multilingual DistilBERT + Hinglish/Hindi/Marathi lexicon + neutral margin |
+| Sentiment analysis | `backend/app/nlp/sentiment.py` – ensemble of XLM-RoBERTa + RoBERTa (BERT family, fine-tuned on tweets by Cardiff NLP), averaged, + Hinglish/Hindi/Marathi lexicon + neutral margin; DistilBERT as fallback |
 | Aspect-based analysis | `backend/app/nlp/aspects.py` – clause splitting, keyword lexicon (editable in Settings), per-clause sentiment |
 | Anomaly detection | `backend/app/analytics/anomaly.py` – Isolation Forest + robust (median/MAD) z-score on negative share |
 | Sentiment prediction | `backend/app/analytics/forecast.py` – Prophet (Holt smoothing fallback) |
@@ -149,16 +149,20 @@ Collectors ──► Message bus ──► Stream processor ──────�
 Run with `cd backend && ..\env\Scripts\python -m scripts.evaluate_model` (add `--datasets domain tweet_eval --limit 2000`
 for the public TweetEval benchmark). Results are also shown on the Performance page.
 
-Domain test set: 83 hand-labelled brand comments (`backend/eval/domain_labeled.csv`), including Hinglish, Hindi, Marathi, sarcasm and mixed opinions.
+Two test sets:
 
-| Model | Accuracy | Precision (macro) | Recall (macro) | F1 (macro) |
+- **Domain set** – 83 hand-labelled brand comments (`backend/eval/domain_labeled.csv`), including Hinglish, Hindi, Marathi, sarcasm and mixed opinions, written by the team.
+- **Real comments** – 200 comments sampled at random from the live database (110 YouTube, 60 Instagram, 30 news) and labelled by hand (`backend/eval/real_comments_labeled.csv`).
+
+| Model | Domain acc. | Domain F1 | Real acc. | Real F1 |
 |---|---|---|---|---|
-| `lxyuan/distilbert-base-multilingual-cased-sentiments-student` (first attempt) | 49.4% | 43.0% | 45.2% | 40.6% |
-| `tabularisai/multilingual-sentiment-analysis` (DistilBERT) | 78.3% | 77.3% | 75.9% | 76.5% |
-| **Hybrid: DistilBERT + regional lexicon + neutral margin (deployed)** | **78.3%** | **78.4%** | **77.4%** | **77.6%** |
+| `lxyuan/distilbert-base-multilingual-cased-sentiments-student` (first attempt) | 49.4% | 40.6% | – | – |
+| DistilBERT (`tabularisai/multilingual-sentiment-analysis`) + lexicon (previous) | 78.3% | 77.6% | 66.5% | 65.2% |
+| XLM-RoBERTa alone (`cardiffnlp/twitter-xlm-roberta-base-sentiment`) + lexicon | 81.9% | 80.6% | 72.0% | 70.3% |
+| **XLM-RoBERTa + RoBERTa ensemble + lexicon (deployed)** | **83.1%** | **81.7%** | **74.0%** | **72.8%** |
 
-Aspect detection on the same set: precision 0.90, recall 0.73, F1 0.81.
-Inference on a laptop CPU: about 8–10 ms per text in batches, about 40 ms for a single text.
+Aspect detection on the domain set: precision 0.90, recall 0.73, F1 0.81.
+Inference on a laptop CPU (both models): about 32 ms per comment in batches on the domain set, about 120 ms on the longer real comments; about 140 ms for a single comment from the Analyze Text page. App Store reviews: predictions agree with the reviewer's star rating for 79.7% of 483 reviews.
 On the live simulated stream, the model agreed with the generator's intended label for 87% of 22,299 mentions.
 
 Limitations to report honestly: the test set is small; mixed opinions ("tasty food but late delivery") are usually classified

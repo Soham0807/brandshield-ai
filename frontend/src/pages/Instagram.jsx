@@ -1,19 +1,19 @@
 import {
   AlertTriangle,
+  BadgeCheck,
   CheckCircle2,
-  Copy,
   ExternalLink,
-  Globe,
   Heart,
   Image as ImageIcon,
   Loader2,
-  KeyRound,
   LogIn,
   MessageCircle,
-  Power,
   RefreshCw,
+  Search,
   ShieldCheck,
+  Trash2,
   Unplug,
+  Users,
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -21,7 +21,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import MentionRow from '../components/MentionRow'
 import { Card, Empty, ErrorBox, SentimentBar, Spinner } from '../components/ui'
 import { api } from '../lib/api'
-import { num, timeAgo } from '../lib/format'
+import { igImage, num, timeAgo } from '../lib/format'
 import { useApi } from '../lib/hooks'
 import { useLiveEvent } from '../lib/live'
 
@@ -29,6 +29,9 @@ export default function Instagram() {
   const [params, setParams] = useSearchParams()
   const status = useApi('/instagram/status', { interval: 30000 })
   const media = useApi('/instagram/media?limit=60', { interval: 60000 })
+  const pages = useApi('/instagram/pages', { interval: 15000 })
+  const pagePosts = useApi('/instagram/pages/posts?limit=60', { interval: 30000 })
+  const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(null)
   const [error, setError] = useState(null)
   const [message, setMessage] = useState(null)
@@ -37,16 +40,17 @@ export default function Instagram() {
   const connected = params.get('connected')
   const loginError = params.get('error')
 
-  useLiveEvent('mentions', (items) => {
-    if (items.some((m) => m.source === 'instagram' && m.parent_id)) {
-      media.reload()
-      status.reload()
-    }
-  })
-  useLiveEvent('refresh', () => {
+  const reloadAll = () => {
     status.reload()
     media.reload()
+    pages.reload()
+    pagePosts.reload()
+  }
+  useLiveEvent('mentions', (items) => {
+    if (items.some((m) => m.source === 'instagram' && m.parent_id)) reloadAll()
   })
+  useLiveEvent('instagram_pages', reloadAll)
+  useLiveEvent('refresh', reloadAll)
 
   async function run(key, fn, success) {
     setBusy(key)
@@ -55,8 +59,7 @@ export default function Instagram() {
     try {
       const r = await fn()
       if (success) setMessage(typeof success === 'function' ? success(r) : success)
-      status.reload()
-      media.reload()
+      reloadAll()
     } catch (e) {
       setError(e.message)
     } finally {
@@ -64,19 +67,23 @@ export default function Instagram() {
     }
   }
 
+  async function addPage() {
+    await run('add', () => api.post('/instagram/pages', { query: query.trim(), set_brand: true }),
+      (r) => `Now monitoring @${r.page.username}. Its latest posts and comments are being imported – this takes about a minute.`)
+    setQuery('')
+  }
+
   const s = status.data
   const accounts = s?.accounts || []
+  const pg = pages.data
+  const pageList = pg?.pages || []
+  const showOwnAccount = s && (s.app_configured || accounts.length > 0)
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-stone-50">Instagram</h1>
-          <p className="text-sm text-stone-500">Connect a Business or Creator account to analyse real comments on your posts</p>
-        </div>
-        {accounts.length > 0 && (
-          <a href="/api/auth/instagram/login" className="btn-ghost"><LogIn size={14} /> Connect another account</a>
-        )}
+      <div>
+        <h1 className="display text-[30px] font-semibold leading-tight text-stone-50">Instagram</h1>
+        <p className="text-sm text-stone-500">Monitor any public Instagram page – real posts, real comments, analysed by the same AI pipeline</p>
       </div>
 
       {connected && (
@@ -89,51 +96,97 @@ export default function Instagram() {
           <AlertTriangle size={16} /> {loginError}
         </Banner>
       )}
-      <ErrorBox message={error || status.error} />
+      <ErrorBox message={error || pages.error} />
       {message && <Banner tone="green" onClose={() => setMessage(null)}><CheckCircle2 size={16} /> {message}</Banner>}
 
-      {!s ? <Spinner /> : (
+      {!pg ? <Spinner /> : !pg.configured ? (
+        <div className="card flex flex-col items-center justify-center p-10 text-center">
+          <span className="grid size-16 place-items-center rounded-sm bg-stone-50 text-ink-950">
+            <ImageIcon size={30} />
+          </span>
+          <h2 className="mt-5 text-lg font-semibold text-stone-50">Instagram page monitoring isn’t switched on yet</h2>
+          <p className="mt-2 max-w-md text-sm text-stone-400">
+            Once it is, you can type any public Instagram handle here and BrandShield reads its posts and comments for you.
+            Ask whoever runs BrandShield to turn it on in <Link to="/setup" className="link">Server setup</Link>.
+          </p>
+        </div>
+      ) : (
         <>
-          {accounts.length === 0 ? (
-            <ConnectHero setup={s} reload={status.reload} />
-          ) : (
+          <Card title="Monitor a page" subtitle="Type any public Instagram handle (@zomato) or paste a profile link – no Instagram login needed">
+            <div className="flex flex-wrap gap-2">
+              <div className="relative min-w-64 flex-1">
+                <Search size={15} className="absolute left-3 top-2.5 text-stone-500" />
+                <input className="input pl-9" placeholder="@zomato" value={query}
+                       onKeyDown={(e) => e.key === 'Enter' && query.trim() && busy !== 'add' && addPage()}
+                       onChange={(e) => setQuery(e.target.value)} />
+              </div>
+              <button className="btn-primary" disabled={busy === 'add' || !query.trim()} onClick={addPage}>
+                {busy === 'add' ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
+                {busy === 'add' ? 'Looking up the page…' : 'Monitor page'}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-stone-500">
+              BrandShield reads the page’s latest posts and their newest comments, then checks again every 15 minutes.
+              Private accounts can’t be monitored.
+            </p>
+          </Card>
+
+          {s?.simulated_mentions > 0 && pageList.length > 0 && (
+            <div className="card flex flex-wrap items-center gap-3 p-4">
+              <AlertTriangle size={18} className="text-red-400" />
+              <div className="flex-1 text-sm text-stone-300">
+                The dashboard still mixes in <b>{num(s.simulated_mentions)}</b> simulated demo mentions. Show only real data?
+              </div>
+              <button className="btn-primary" disabled={busy === 'live'} onClick={() => {
+                if (confirm('Turn off the simulator and delete all simulated mentions and alerts?')) {
+                  run('live', () => api.post('/data/use-live-only', { confirm: true, rename_brand: false }),
+                    (r) => `Removed ${num(r.deleted_simulated)} simulated mentions. The dashboard now shows only real data.`)
+                }
+              }}>
+                {busy === 'live' ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Use only real data
+              </button>
+            </div>
+          )}
+
+          {pageList.map((p) => (
+            <PageCard key={p.username} page={p} busy={busy}
+              onSync={() => run(`psync-${p.username}`, () => api.post(`/instagram/pages/${p.username}/sync`, { force: true }),
+                (r) => `Fetched ${r.queued_comments} new comments from @${p.username}.`)}
+              onRemove={() => {
+                const del = confirm(`Stop monitoring @${p.username}?\n\nOK = also delete its imported comments\nCancel = keep the data`)
+                run(`prm-${p.username}`, () => fetch(`/api/instagram/pages/${p.username}?delete_data=${del}`, { method: 'DELETE' })
+                  .then(async (r) => { if (!r.ok) throw new Error((await r.json()).detail) }), `Stopped monitoring @${p.username}`)
+              }} />
+          ))}
+
+          {pageList.length > 0 && (
+            <Card title="Posts" subtitle="Sentiment of the comments on each post · click a post to read its comments">
+              {!pagePosts.data ? <Spinner /> : !pagePosts.data.items.length ? (
+                <Empty>Posts appear here as soon as the first import finishes.</Empty>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                  {pagePosts.data.items.map((m) => <PostCard key={m.id} post={m} onOpen={() => setOpenPost(m)} />)}
+                </div>
+              )}
+            </Card>
+          )}
+        </>
+      )}
+
+      {showOwnAccount && (
+        <div className="space-y-4 border-t border-ink-700 pt-6">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold text-stone-100">Your own Business account</h2>
+              <p className="text-sm text-stone-500">Own a Business or Creator account? Log in to analyse comments on your posts directly from Instagram.</p>
+            </div>
+            {accounts.length > 0 && (
+              <a href="/api/auth/instagram/login" className="btn-ghost"><LogIn size={14} /> Connect another account</a>
+            )}
+          </div>
+
+          {accounts.length === 0 ? <ConnectHero setup={s} /> : (
             <>
-              {s.simulated_mentions > 0 && (
-                <div className="card flex flex-wrap items-center gap-3 border-amber-500/30 bg-amber-500/[0.06] p-4">
-                  <AlertTriangle size={18} className="text-amber-400" />
-                  <div className="flex-1 text-sm text-stone-300">
-                    The dashboard still contains <b>{num(s.simulated_mentions)}</b> simulated demo mentions
-                    {s.simulator_enabled ? ' and the simulator is running' : ''}. Switch to real data only?
-                  </div>
-                  <button
-                    className="btn-primary"
-                    disabled={busy === 'live'}
-                    onClick={() => {
-                      if (confirm('Turn off the simulator, delete all simulated mentions and alerts, and use the Instagram account name as the brand?')) {
-                        run('live', () => api.post('/data/use-live-only', { confirm: true, rename_brand: true }),
-                          (r) => `Removed ${num(r.deleted_simulated)} simulated mentions. The dashboard now shows only real Instagram data.`)
-                      }
-                    }}
-                  >
-                    {busy === 'live' ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Use only real data
-                  </button>
-                </div>
-              )}
-
-              {s.tunnel?.state === "running" && (
-                <div className="card flex flex-wrap items-center gap-3 border-sky-500/30 bg-sky-500/[0.06] p-4">
-                  <Globe size={18} className="text-sky-400" />
-                  <div className="flex-1 text-sm text-stone-300">
-                    Public address <span className="font-mono text-xs text-sky-300">{s.tunnel.url}</span> is live – your dashboard is
-                    reachable from the internet. It is only needed while connecting an account.
-                  </div>
-                  <button className="btn-ghost" disabled={busy === "tunnel"}
-                          onClick={() => run("tunnel", () => api.post("/instagram/tunnel/stop"), "Public address stopped")}>
-                    {busy === "tunnel" ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />} Stop public address
-                  </button>
-                </div>
-              )}
-
               {accounts.map((a) => (
                 <AccountCard
                   key={a.ig_user_id}
@@ -149,8 +202,7 @@ export default function Instagram() {
                   }}
                 />
               ))}
-
-              <Card title="Posts" subtitle="Sentiment of the comments on each post · click a post to read its comments">
+              <Card title="Your posts" subtitle="Sentiment of the comments on each post · click a post to read its comments">
                 {!media.data ? <Spinner /> : !media.data.items.length ? (
                   <Empty>No posts imported yet. Click “Sync now”.</Empty>
                 ) : (
@@ -161,10 +213,71 @@ export default function Instagram() {
               </Card>
             </>
           )}
-        </>
+        </div>
       )}
 
       {openPost && <PostComments post={openPost} onClose={() => setOpenPost(null)} />}
+    </div>
+  )
+}
+
+function PageCard({ page: p, busy, onSync, onRemove }) {
+  const [broken, setBroken] = useState(false)
+  const total = (p.positive || 0) + (p.neutral || 0) + (p.negative || 0)
+  const importing = !p.last_sync_at && !p.last_error
+  return (
+    <div className="card p-5">
+      <div className="flex flex-wrap items-center gap-4">
+        {p.profile_pic_url && !broken ? (
+          <img src={igImage(p.profile_pic_url)} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)}
+               className="size-16 rounded-full border border-ink-600 object-cover" />
+        ) : (
+          <div className="grid size-16 place-items-center rounded-full bg-stone-50 display text-2xl font-semibold text-ink-950">
+            {p.username[0]?.toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <a href={`https://www.instagram.com/${p.username}/`} target="_blank" rel="noreferrer"
+               className="text-lg font-semibold text-stone-50 hover:underline">{p.full_name || `@${p.username}`}</a>
+            {p.verified && <BadgeCheck size={16} className="text-sky-400" />}
+          </div>
+          <div className="text-sm text-stone-400">@{p.username}{p.category ? ` · ${p.category}` : ''}</div>
+          <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-stone-500">
+            {importing ? (
+              <span className="flex items-center gap-1 text-amber-400"><Loader2 size={12} className="animate-spin" /> Importing posts and comments…</span>
+            ) : <span>Last checked {p.last_sync_at ? timeAgo(p.last_sync_at) : '—'}</span>}
+            <span>{num(p.posts_tracked)} posts tracked</span>
+          </div>
+          {p.last_error && <div className="mt-1 text-xs text-red-400">{p.last_error}</div>}
+        </div>
+        <div className="grid grid-cols-3 gap-6 text-center">
+          <Metric label="Followers" value={num(p.followers_count)} />
+          <Metric label="Posts" value={num(p.posts_count)} />
+          <Metric label="Comments analysed" value={num(p.analysed_comments)} />
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-ghost" onClick={onSync} disabled={busy === `psync-${p.username}` || importing}>
+            {busy === `psync-${p.username}` ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Check now
+          </button>
+          <button className="btn-danger" onClick={onRemove} disabled={busy === `prm-${p.username}`}><Trash2 size={14} /></button>
+        </div>
+      </div>
+      {total > 0 && (
+        <div className="mt-4 border-t border-ink-700 pt-4">
+          <div className="mb-1.5 flex justify-between text-xs text-stone-400">
+            <span className="flex items-center gap-1"><Users size={12} /> Audience sentiment</span>
+            <span>
+              <span className="text-emerald-400">{Math.round((100 * p.positive) / total)}% positive</span> ·{' '}
+              <span className="text-slate-300">{Math.round((100 * p.neutral) / total)}% neutral</span> ·{' '}
+              <span className="text-red-400">{Math.round((100 * p.negative) / total)}% negative</span>
+              {p.spam > 0 && <> · <span className="text-amber-400">{p.spam} spam</span></>}
+            </span>
+          </div>
+          <SentimentBar positive={p.positive} neutral={p.neutral} negative={p.negative} />
+          <div className="mt-3 text-xs"><Link to="/" className="link">Open the dashboard</Link> for trends, topics, anomalies and alerts on these comments.</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -179,167 +292,35 @@ function Banner({ tone, children, onClose }) {
   )
 }
 
-function ConnectHero({ setup, reload }) {
-  const [appId, setAppId] = useState('')
-  const [appSecret, setAppSecret] = useState('')
-  const [busy, setBusy] = useState(null)
-  const [error, setError] = useState(null)
-  const [copied, setCopied] = useState(false)
-  const tunnel = setup.tunnel || {}
-  const redirectUri = tunnel.redirect_uri || setup.redirect_uri
-  const isHttps = redirectUri.startsWith('https://')
-
-  async function call(key, fn) {
-    setBusy(key)
-    setError(null)
-    try {
-      await fn()
-      await reload()
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const copy = () => {
-    navigator.clipboard?.writeText(redirectUri)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
+function ConnectHero({ setup }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-5">
-      <div className="card flex flex-col items-center justify-center p-8 text-center xl:col-span-2">
-        <span className="grid size-16 place-items-center rounded-2xl bg-gradient-to-br from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg shadow-pink-900/30">
-          <ImageIcon size={30} />
-        </span>
-        <h2 className="mt-5 text-lg font-semibold text-stone-50">Connect your Instagram account</h2>
-        <p className="mt-2 max-w-sm text-sm text-stone-400">
-          You enter your Instagram username and password on Instagram’s own login page and approve read
-          access to your posts and comments. BrandShield AI never sees your password.
+    <div className="card flex flex-col items-center justify-center p-10 text-center">
+      <span className="grid size-16 place-items-center rounded-sm bg-stone-50 text-ink-950">
+        <ImageIcon size={30} />
+      </span>
+      <h2 className="mt-5 text-lg font-semibold text-stone-50">Connect your Instagram account</h2>
+      {setup.app_configured ? (
+        <>
+          <p className="mt-2 max-w-md text-sm text-stone-400">
+            You log in on Instagram’s own page and allow BrandShield to read your posts and comments.
+            BrandShield never sees your password.
+          </p>
+          <a href="/api/auth/instagram/login"
+             className="btn-primary mt-6 px-5 py-2.5">
+            <LogIn size={16} /> Continue with Instagram
+          </a>
+          <p className="mt-4 text-xs text-stone-500">
+            Works with Instagram <b>Business</b> or <b>Creator</b> accounts (free to switch: Instagram app →
+            Settings → Account type).
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 max-w-md text-sm text-stone-400">
+          Instagram login isn’t switched on for this installation yet. Ask whoever runs BrandShield to turn it on in{' '}
+          <Link to="/setup" className="link">Server setup</Link>.
         </p>
-        {setup.app_configured ? (
-          <>
-            <a href="/api/auth/instagram/login"
-               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-600 via-pink-600 to-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:brightness-110">
-              <LogIn size={16} /> Continue with Instagram
-            </a>
-            {!isHttps && (
-              <p className="mt-3 max-w-xs text-xs text-amber-300">
-                Meta usually rejects http redirect URIs. If login fails, start the secure address in step 3.
-              </p>
-            )}
-          </>
-        ) : (
-          <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            Finish the 3 setup steps once, then this button works for every account.
-          </div>
-        )}
-        <p className="mt-4 text-xs text-stone-500">
-          Requires an Instagram <b>Business</b> or <b>Creator</b> account (free to switch: Instagram app →
-          Settings → Account type).
-        </p>
-      </div>
-
-      <Card title="One-time setup" subtitle="About 10 minutes, only needed once for this installation" className="xl:col-span-3">
-        <ErrorBox message={error} />
-        <ol className="mt-1 space-y-4 text-sm text-stone-300">
-          <Step n={1}>
-            <div className="font-medium text-stone-100">Create a Meta app</div>
-            <p className="mt-1 text-stone-400">
-              Open <a className="text-amber-400 hover:underline" href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer">developers.facebook.com/apps</a> →
-              <b> Create app</b> → use case <b>“Manage messaging and content on Instagram”</b> (type Business).
-              Then open <b>Instagram → API setup with Instagram login</b> and copy the app ID and secret.
-            </p>
-          </Step>
-
-          <Step n={2}>
-            <div className="font-medium text-stone-100">Paste the keys here</div>
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <input className="input" placeholder="Instagram app ID" value={appId} onChange={(e) => setAppId(e.target.value)} />
-              <input className="input" type="password" placeholder="Instagram app secret" value={appSecret} onChange={(e) => setAppSecret(e.target.value)} />
-            </div>
-            <div className="mt-2 flex items-center gap-3">
-              <button className="btn-primary" disabled={busy === 'creds' || !appId.trim() || !appSecret.trim()}
-                      onClick={() => call('creds', () => api.post('/instagram/credentials', { app_id: appId.trim(), app_secret: appSecret.trim() }))}>
-                {busy === 'creds' ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Save keys
-              </button>
-              {setup.app_configured && <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 size={13} /> Saved to backend/.env</span>}
-            </div>
-          </Step>
-
-          <Step n={3}>
-            <div className="font-medium text-stone-100">Give Instagram an address it can reach</div>
-            <p className="mt-1 text-stone-400">
-              Meta only accepts <b>https</b> redirect URIs, which a laptop on 127.0.0.1 cannot provide.
-              This starts a free Cloudflare tunnel for you (downloads a small helper the first time).
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {tunnel.state === 'running' ? (
-                <button className="btn-ghost" disabled={busy === 'tunnel'} onClick={() => call('tunnel', () => api.post('/instagram/tunnel/stop'))}>
-                  {busy === 'tunnel' ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />} Stop secure address
-                </button>
-              ) : (
-                <button className="btn-ghost" disabled={busy === 'tunnel'} onClick={() => call('tunnel', () => api.post('/instagram/tunnel/start'))}>
-                  {busy === 'tunnel' ? <Loader2 size={14} className="animate-spin" /> : <Globe size={14} />}
-                  {tunnel.binary_present ? 'Start secure address' : 'Download helper & start'}
-                </button>
-              )}
-              {tunnel.state === 'running' && <span className="flex items-center gap-1 text-xs text-emerald-400"><CheckCircle2 size={13} /> {tunnel.url}</span>}
-              {tunnel.state === 'downloading' && <span className="text-xs text-stone-400">Downloading cloudflared…</span>}
-              {tunnel.error && <span className="text-xs text-red-400">{tunnel.error}</span>}
-            </div>
-            <p className="mt-3 text-stone-400">Copy this <b>OAuth redirect URI</b> into the Meta app (Instagram → Business login settings):</p>
-            <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 font-mono text-xs text-stone-200">
-              <span className="flex-1 break-all">{redirectUri}</span>
-              <button className="text-stone-400 hover:text-amber-300" onClick={copy}>{copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}</button>
-            </div>
-            {tunnel.state === 'running' && (
-              <p className="mt-2 text-xs text-amber-300">
-                While this address is live your dashboard is reachable from the internet by anyone who knows the
-                link. Stop it once the account is connected – the connection keeps working without it.
-              </p>
-            )}
-          </Step>
-
-          <Step n={4}>
-            <div className="font-medium text-stone-100">Allow your account to log in</div>
-            <p className="mt-1 text-stone-400">
-              A Meta app in <b>development mode</b> only accepts accounts listed as testers – any other account gets
-              <b> “Insufficient developer role”</b>. Two steps, both required:
-            </p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-stone-400">
-              <li>
-                In the Meta app: <b>App roles → Roles → Add people → Instagram tester</b>, search the Instagram
-                username and send the invite.
-              </li>
-              <li>
-                Accept it as that account at{" "}
-                <a className="text-amber-400 hover:underline" href="https://www.instagram.com/accounts/manage_access/" target="_blank" rel="noreferrer">
-                  instagram.com/accounts/manage_access
-                </a>{" "}
-                → <b>Tester invites</b> → <b>Accept</b>. (App → Settings → Apps and websites on mobile.)
-              </li>
-            </ol>
-            <p className="mt-2 text-stone-400">
-              The account must also be <b>Business</b> or <b>Creator</b>. For anyone outside the tester list, submit the app
-              for <b>App Review</b> with <code className="mx-1 text-stone-200">instagram_business_basic</code> and
-              <code className="mx-1 text-stone-200">instagram_business_manage_comments</code>.
-            </p>
-          </Step>
-        </ol>
-      </Card>
+      )}
     </div>
-  )
-}
-
-function Step({ n, children }) {
-  return (
-    <li className="flex gap-3">
-      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-amber-500/15 text-xs font-semibold text-amber-300">{n}</span>
-      <div className="min-w-0 flex-1 pt-0.5">{children}</div>
-    </li>
   )
 }
 
@@ -350,9 +331,9 @@ function AccountCard({ account: a, busy, collector, onSync, onDisconnect }) {
     <div className="card p-5">
       <div className="flex flex-wrap items-center gap-4">
         {a.profile_picture_url ? (
-          <img src={a.profile_picture_url} alt="" referrerPolicy="no-referrer" className="size-16 rounded-full border-2 border-pink-500/60 object-cover" />
+          <img src={igImage(a.profile_picture_url)} alt="" referrerPolicy="no-referrer" className="size-16 rounded-full border border-ink-600 object-cover" />
         ) : (
-          <div className="grid size-16 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-amber-400 text-xl font-semibold text-white">
+          <div className="grid size-16 place-items-center rounded-full bg-stone-50 display text-2xl font-semibold text-ink-950">
             {a.username[0]?.toUpperCase()}
           </div>
         )}
@@ -389,11 +370,11 @@ function AccountCard({ account: a, busy, collector, onSync, onDisconnect }) {
               <span className="text-emerald-400">{Math.round((100 * a.positive) / total)}% positive</span> ·{' '}
               <span className="text-slate-300">{Math.round((100 * a.neutral) / total)}% neutral</span> ·{' '}
               <span className="text-red-400">{Math.round((100 * a.negative) / total)}% negative</span>
-              {a.spam > 0 && <> · <span className="text-orange-300">{a.spam} spam</span></>}
+              {a.spam > 0 && <> · <span className="text-amber-400">{a.spam} spam</span></>}
             </span>
           </div>
           <SentimentBar positive={a.positive} neutral={a.neutral} negative={a.negative} />
-          <div className="mt-3 text-xs"><Link to="/" className="text-amber-400 hover:underline">Open the dashboard</Link> for trends, aspects, anomalies and alerts on these comments.</div>
+          <div className="mt-3 text-xs"><Link to="/" className="link">Open the dashboard</Link> for trends, topics, anomalies and alerts on these comments.</div>
         </div>
       )}
     </div>
@@ -417,7 +398,7 @@ function PostCard({ post: m, onOpen }) {
     <button onClick={onOpen} className="group overflow-hidden rounded-xl border border-ink-700 bg-ink-850 text-left transition hover:border-ink-600">
       <div className="relative aspect-square bg-ink-800">
         {image && !broken ? (
-          <img src={image} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)}
+          <img src={igImage(image)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)}
                className="size-full object-cover transition group-hover:scale-[1.02]" />
         ) : (
           <div className="grid size-full place-items-center text-stone-600"><ImageIcon size={32} /></div>
@@ -456,14 +437,14 @@ function PostComments({ post, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex justify-end bg-black/50" onClick={onClose}>
       <div className="flex h-full w-full max-w-xl flex-col border-l border-ink-700 bg-ink-900" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3 border-b border-ink-700 p-4">
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-stone-100">Post comments</div>
             <p className="mt-1 line-clamp-3 text-xs text-stone-400">{post.caption || 'No caption'}</p>
             {post.permalink && (
-              <a href={post.permalink} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-amber-400 hover:underline">
+              <a href={post.permalink} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 link text-xs">
                 Open on Instagram <ExternalLink size={11} />
               </a>
             )}
