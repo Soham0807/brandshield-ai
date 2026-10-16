@@ -8,11 +8,18 @@ and inference time, for:
 * ``real``      - 200 real collected comments (110 YouTube, 60 Instagram, 30 news),
                   sampled at random from the live database and labelled by hand
                   (backend/eval/real_comments_labeled.csv)
+* ``appstore``  - App Store reviews collected by the live system, labelled by the
+                  reviewer's own star rating (1-2 negative, 3 neutral, 4-5 positive)
 * ``tweet_eval`` - public TweetEval sentiment benchmark (test split, downloaded
                   from the Hugging Face Hub, ~12k tweets; use --limit)
 
 It also compares the raw model output (the averaged ensemble) against the
 hybrid model (ensemble + regional lexicon + neutral margin) as an ablation study.
+
+Besides 3-class accuracy it reports polarity accuracy: of the comments that are truly
+positive or negative and that the model labels positive or negative, the share it gets
+right (i.e. how often it confuses praise with a complaint). ``coverage`` is the share of
+truly polar comments the model labels polar rather than neutral.
 
 Usage (from the backend folder):
     python -m scripts.evaluate_model
@@ -43,6 +50,15 @@ def load_dataset(name: str, limit: int | None) -> pd.DataFrame:
         df = pd.read_csv(BACKEND / "eval" / "domain_labeled.csv").fillna({"aspects": ""})
     elif name == "real":
         df = pd.read_csv(BACKEND / "eval" / "real_comments_labeled.csv")
+        df["aspects"] = None
+    elif name == "appstore":
+        import sqlite3
+
+        from app.config import settings
+        with sqlite3.connect(settings.database_path) as db:
+            rows = db.execute("SELECT text, true_label FROM mentions WHERE source = 'appstore' "
+                              "AND origin = 'live' AND true_label IS NOT NULL ORDER BY id").fetchall()
+        df = pd.DataFrame(rows, columns=["text", "label"])
         df["aspects"] = None
     elif name == "tweet_eval":
         from huggingface_hub import hf_hub_download
@@ -81,6 +97,16 @@ def classification_report(y_true, y_pred) -> dict:
     }
 
 
+def polarity_report(y_true, y_pred) -> dict:
+    """Positive-vs-negative accuracy on comments that are polar and predicted polar."""
+    polar = [(t, p) for t, p in zip(y_true, y_pred) if t in ("negative", "positive")]
+    decisive = [(t, p) for t, p in polar if p in ("negative", "positive")]
+    correct = sum(t == p for t, p in decisive)
+    return {"accuracy": round(correct / len(decisive), 4) if decisive else None,
+            "correct": correct, "decisive": len(decisive), "polar": len(polar),
+            "coverage": round(len(decisive) / len(polar), 4) if polar else None}
+
+
 def evaluate_aspects(df: pd.DataFrame, extractor) -> dict | None:
     if "aspects" not in df or df["aspects"].isna().all():
         return None
@@ -116,6 +142,7 @@ def evaluate_datasets(model, datasets: list[str], output: Path, extractor=None, 
             "inference_ms_per_text": round(1000 * elapsed / max(len(df), 1), 2),
             "hybrid": classification_report(df["label"], hybrid_pred),
             "model_only": classification_report(df["label"], baseline_pred),
+            "polarity": polarity_report(df["label"], hybrid_pred),
             "evaluated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
         if extractor is not None:
@@ -135,7 +162,8 @@ def main():
     from app.nlp.sentiment import SentimentModel
 
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--datasets", nargs="+", default=["domain", "real"], choices=["domain", "real", "tweet_eval"])
+    parser.add_argument("--datasets", nargs="+", default=["domain", "real", "appstore"],
+                        choices=["domain", "real", "appstore", "tweet_eval"])
     parser.add_argument("--limit", type=int, default=None, help="max samples per dataset")
     args = parser.parse_args()
 
@@ -150,6 +178,9 @@ def main():
             m = r[variant]
             print(f"{variant:>16}: accuracy={m['accuracy']:.3f} precision={m['precision_macro']:.3f} "
                   f"recall={m['recall_macro']:.3f} f1={m['f1_macro']:.3f}")
+        pol = r["polarity"]
+        print(f"{'polarity':>16}: accuracy={pol['accuracy']:.3f} ({pol['correct']}/{pol['decisive']} "
+              f"positive-vs-negative calls correct, coverage {pol['coverage']:.3f})")
         if r.get("aspect_detection"):
             a = r["aspect_detection"]
             print(f"{'aspects':>16}: precision={a['precision']:.3f} recall={a['recall']:.3f} f1={a['f1']:.3f}")

@@ -346,8 +346,12 @@ class App:
             await asyncio.sleep(0.25)
         await asyncio.sleep(1.0)
         deleted = self.db.scalar("SELECT COUNT(*) FROM mentions WHERE origin = 'simulated'")
+        # alerts carry no origin, so drop only those raised since simulated data first arrived;
+        # alerts from real data before that are kept
+        since = self.db.scalar("SELECT MIN(ingested_at) FROM mentions WHERE origin = 'simulated'")
         self.db.execute("DELETE FROM mentions WHERE origin = 'simulated'")
-        self.db.execute("DELETE FROM alerts")
+        if since:
+            self.db.execute("DELETE FROM alerts WHERE created_at >= ?", (since,))
         self.analytics._cache.clear()
         await asyncio.to_thread(self.analytics.refresh_forecast)
         await asyncio.to_thread(self.analytics.compute_snapshot)

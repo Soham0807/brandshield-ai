@@ -10,8 +10,10 @@ import { useLive, useLiveEvent } from '../lib/live'
 const DATASET_TITLES = {
   real: 'Real comments (200 from YouTube, Instagram and news, hand-labelled)',
   domain: 'Team test set (83 brand comments incl. Hinglish, Hindi, Marathi)',
+  appstore: "App Store reviews (labelled by the reviewer's own star rating)",
   tweet_eval: 'TweetEval benchmark',
 }
+const DATASET_ORDER = ['real', 'domain', 'appstore', 'tweet_eval']
 
 export default function System() {
   const { metrics: liveMetrics } = useLive()
@@ -120,7 +122,7 @@ export default function System() {
           <Empty>No evaluation yet. Click “Run evaluation” or run <code>python -m scripts.evaluate_model</code>.</Empty>
         ) : (
           <div className="space-y-6">
-            {Object.entries(evaluation.data.datasets).sort(([a], [b]) => (a === 'real' ? -1 : b === 'real' ? 1 : 0)).map(([name, d]) => <EvalBlock key={name} name={name} d={d} />)}
+            {Object.entries(evaluation.data.datasets).sort(([a], [b]) => DATASET_ORDER.indexOf(a) - DATASET_ORDER.indexOf(b)).map(([name, d]) => <EvalBlock key={name} name={name} d={d} />)}
           </div>
         )}
       </Card>
@@ -136,6 +138,16 @@ function EvalBlock({ name, d }) {
         <h3 className="font-semibold text-stone-100">{DATASET_TITLES[name] || name}</h3>
         <span className="text-xs text-stone-500">{d.samples} samples · {d.inference_ms_per_text} ms/text · {d.evaluated_at}</span>
       </div>
+      {d.polarity?.accuracy != null && (
+        <p className="mt-2 text-sm text-stone-400">
+          <Tip text="Of the comments that are really positive or negative and that the model labels positive or negative, how many it gets right. It shows how rarely the model mistakes praise for a complaint, or the reverse. Coverage is the share of those comments it labels positive or negative rather than neutral.">
+            Polarity accuracy
+          </Tip>{' '}
+          <b className="text-emerald-400">{(d.polarity.accuracy * 100).toFixed(1)}%</b>
+          {' '}({d.polarity.correct} of {d.polarity.decisive} positive-vs-negative calls correct, coverage {(d.polarity.coverage * 100).toFixed(0)}%)
+          {' '}· 3-class accuracy <b className="text-stone-100">{(d.hybrid.accuracy * 100).toFixed(1)}%</b>
+        </p>
+      )}
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
           <thead>

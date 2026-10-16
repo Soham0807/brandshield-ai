@@ -397,7 +397,7 @@ async def run_evaluation(request: Request):
         from scripts.evaluate_model import evaluate_datasets
         _evaluation_task.update(running=True, error=None)
         try:
-            await asyncio.to_thread(evaluate_datasets, app.model, ["domain", "real"], app.settings.evaluation_path, app.aspects)
+            await asyncio.to_thread(evaluate_datasets, app.model, ["domain", "real", "appstore"], app.settings.evaluation_path, app.aspects)
         except Exception as exc:
             _evaluation_task["error"] = str(exc)
         finally:
