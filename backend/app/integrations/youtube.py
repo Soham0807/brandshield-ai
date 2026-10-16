@@ -29,6 +29,10 @@ class YouTubeError(Exception):
     """Message safe to show the user."""
 
 
+class YouTubeUnavailable(YouTubeError):
+    """YouTube could not be reached (network error or timeout)."""
+
+
 class YouTubeService:
     def __init__(self, db: Database, settings: Settings):
         self.db = db
@@ -46,8 +50,11 @@ class YouTubeService:
     async def _get(self, client: httpx.AsyncClient, path: str, params: dict) -> dict:
         if not self.configured:
             raise YouTubeError("No YouTube API key yet — add it on the YouTube page.")
-        resp = await client.get(f"{self.api}/{path}",
-                                params={**params, "key": self.settings.youtube_api_key})
+        try:
+            resp = await client.get(f"{self.api}/{path}",
+                                    params={**params, "key": self.settings.youtube_api_key})
+        except httpx.HTTPError as exc:
+            raise YouTubeUnavailable(f"Could not reach YouTube ({type(exc).__name__}). Try again in a moment.") from exc
         if resp.status_code >= 400:
             try:
                 error = resp.json()["error"]

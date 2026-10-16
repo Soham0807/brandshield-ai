@@ -18,7 +18,7 @@ from app.db import decode_mention, to_iso, utcnow
 from app.config import write_env
 from app.integrations.instagram import InstagramError
 from app.integrations.instagram_public import InstagramPublicError, normalise_username
-from app.integrations.youtube import YouTubeError
+from app.integrations.youtube import YouTubeError, YouTubeUnavailable
 from app.integrations.tunnel import TunnelError
 from app.nlp.preprocess import preprocess
 
@@ -729,7 +729,7 @@ async def add_youtube_channel(request: Request, body: ChannelRequest):
     try:
         found = await app.youtube.resolve(body.query)
     except YouTubeError as exc:
-        raise HTTPException(422, str(exc))
+        raise HTTPException(503 if isinstance(exc, YouTubeUnavailable) else 422, str(exc))
     channel = app.youtube.save_channel(found)
     patch = {"sources": {"youtube": True}}
     if body.set_brand:
