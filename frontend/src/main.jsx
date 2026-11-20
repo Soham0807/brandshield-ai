@@ -14,6 +14,7 @@ import Aspects from './pages/Aspects'
 import Dashboard from './pages/Dashboard'
 import Instagram from './pages/Instagram'
 import Mentions from './pages/Mentions'
+import Report from './pages/Report'
 import SettingsPage from './pages/Settings'
 import Setup from './pages/Setup'
 import YouTube from './pages/YouTube'
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="aspects" element={<Aspects />} />
             <Route path="alerts" element={<Alerts />} />
             <Route path="analyze" element={<Analyze />} />
+            <Route path="report" element={<Report />} />
             <Route path="system" element={<System />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="setup" element={<Setup />} />

@@ -20,6 +20,7 @@ const NAV = [
   { to: '/aspects', label: 'Topics' },
   { to: '/alerts', label: 'Alerts', badge: true },
   { to: '/analyze', label: 'Analyze Text' },
+  { to: '/report', label: 'Report' },
   { to: '/system', label: 'Performance' },
   { to: '/settings', label: 'Settings' },
 ]
@@ -40,7 +41,7 @@ export default function Layout() {
     <div className="flex min-h-full flex-col">
       <Backdrop />
 
-      <header className="sticky top-0 z-30 border-b-[3px] border-double border-stone-50 bg-ink-950/95 backdrop-blur">
+      <header className="sticky top-0 z-30 print:hidden border-b-[3px] border-double border-stone-50 bg-ink-950/95 backdrop-blur">
         <div className="mx-auto w-full max-w-[1400px] px-4 md:px-8">
           {/* dateline */}
           <div className="flex items-center gap-3 border-b border-ink-700 py-1.5 font-mono text-[10.5px] uppercase tracking-[.14em] text-stone-500">
@@ -118,9 +119,9 @@ export default function Layout() {
       </header>
 
       <main key={resolved} className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8">
-        <PageIntro path={location.pathname} />
+        <div className="print:hidden"><PageIntro path={location.pathname} /></div>
         {authEnabled && !isAdmin && (
-          <p className="mb-4 border-l-2 border-amber-400 bg-ink-900 px-3 py-2 text-sm text-stone-400">
+          <p className="mb-4 print:hidden border-l-2 border-amber-400 bg-ink-900 px-3 py-2 text-sm text-stone-400">
             You are signed in as a <span className="font-semibold text-amber-400">viewer</span>: you can explore every page and analyse text,
             but changes (settings, sources, crisis simulation, deleting data) need an admin.
           </p>
@@ -128,7 +129,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer>
+      <footer className="print:hidden">
         <SentimentRule />
         <div className="mx-auto flex w-full max-w-[1400px] flex-wrap gap-x-5 gap-y-1 px-4 py-3 font-mono text-[10.5px] uppercase tracking-[.12em] text-stone-500 md:px-8">
           <span className="flex items-center gap-1.5 text-stone-50"><LogoMark size={14} /> BrandShield AI</span>

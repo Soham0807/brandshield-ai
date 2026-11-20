@@ -133,6 +133,8 @@ export default function Analyze() {
                 {result.stored_id && <p className="mt-3 text-xs text-emerald-400">Saved to the dashboard ({result.stored_id}).</p>}
               </Card>
 
+              {result.explanation && <Explanation ex={result.explanation} />}
+
               <Card title="Topic-level sentiment" subtitle="Each clause is classified separately">
                 {result.aspects.length ? (
                   <div className="grid gap-2 md:grid-cols-2">
@@ -166,6 +168,55 @@ export default function Analyze() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** Which words moved the prediction: occlusion (drop a word, re-score) plus lexicon hits. */
+function Explanation({ ex }) {
+  const max = Math.max(0.05, ...ex.words.map((w) => Math.abs(w.impact)))
+  return (
+    <Card title="Why this label?" subtitle="Each word is removed in turn and the comment re-scored; bigger bars moved the result more">
+      {ex.words.length ? (
+        <div className="space-y-1.5">
+          {ex.words.map((w, i) => {
+            const pos = w.impact > 0
+            const color = pos ? SENTIMENT_COLORS.positive : SENTIMENT_COLORS.negative
+            return (
+              <div key={`${w.word}-${i}`} className="flex items-center gap-3 text-sm">
+                <span className="w-32 truncate text-right font-medium text-stone-200" title={w.word}>{w.word}</span>
+                <div className="flex h-2 flex-1">
+                  <div className="flex w-1/2 justify-end">
+                    {!pos && <div className="h-full rounded-l-full" style={{ width: `${(100 * Math.abs(w.impact)) / max}%`, background: color }} />}
+                  </div>
+                  <div className="w-px bg-ink-600" />
+                  <div className="w-1/2">
+                    {pos && <div className="h-full rounded-r-full" style={{ width: `${(100 * w.impact) / max}%`, background: color }} />}
+                  </div>
+                </div>
+                <span className="w-24 text-xs" style={{ color }}>{pos ? 'towards positive' : 'towards negative'}</span>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-stone-500">
+          {ex.too_long ? 'Comment too long for word-by-word explanation.' : 'No single word changes the result much: the model reads the comment as a whole.'}
+        </p>
+      )}
+      {ex.lexicon.length > 0 && (
+        <div className="mt-4 border-t border-ink-700 pt-3">
+          <div className="label">Lexicon matches (Hinglish / Hindi / Marathi and brand-risk terms)</div>
+          <div className="flex flex-wrap gap-1.5">
+            {ex.lexicon.map((t, i) => (
+              <span key={`${t.term}-${i}`} className="rounded border border-ink-700 px-2 py-0.5 text-xs"
+                    style={{ color: t.weight > 0 ? SENTIMENT_COLORS.positive : SENTIMENT_COLORS.negative }}>
+                {t.term} {t.weight > 0 ? '+' : ''}{t.weight}{t.negated ? ' (negated)' : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }
 

@@ -10,6 +10,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': backend,
+      '/docs': backend,
+      '/openapi.json': backend,
       '/ws': { target: backend.replace('http', 'ws'), ws: true },
     },
   },

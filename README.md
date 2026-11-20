@@ -117,7 +117,12 @@ The GitHub Student Developer Pack covers the cost: $200 DigitalOcean credit plus
 4. **Instagram**: connect a real Business/Creator account with Instagram login (see above) and watch real comments being classified per post.
 5. **Analyze Text**: paste any comment (English, Hinglish, Hindi, Marathi) to see every pipeline step:
    cleaning → tokens → lemmas → language → spam → sentiment probabilities → aspect-level sentiment.
-6. **Performance**: live throughput/latency/inference time, plus accuracy, precision, recall, F1, and the confusion matrix.
+   **Why this label?** shows which words moved the prediction (each word is removed in turn and the comment
+   re-scored) and which lexicon terms matched.
+6. **Report**: a one-page brand summary (risk, sentiment split, topics, worst complaints, alerts) to print or save
+   as PDF. **Mentions → Export CSV** downloads the filtered mentions (up to 10,000) for Excel.
+7. **Performance**: live throughput/latency/inference time, plus accuracy, precision, recall, F1, and the confusion
+   matrix. **API docs** opens the interactive OpenAPI documentation (`/docs`) for every endpoint.
 
 ## Architecture
 
@@ -190,6 +195,8 @@ Leave it empty for open access during development.
   login screen and becomes a **viewer**: every page and Analyze Text work, but changes (settings, sources, crisis
   simulation, deleting data) are refused with 403. Admins promote, demote and delete users under
   **Settings → Users**; at least one admin always remains. Set `ALLOW_SIGNUP=false` to disable sign-up.
+  For a review, create a read-only account for examiners (for example `jury`) so they can explore on their own
+  devices without changing anything.
 - **Storage.** Accounts live in `backend/data/users.db`, separate from the mention database, so the real (8000)
   and demo (8001) instances share them. Passwords are hashed with PBKDF2-HMAC-SHA256 (200,000 iterations,
   random 16-byte salt).
@@ -202,7 +209,7 @@ Leave it empty for open access during development.
 ```bash
 cd backend
 ..\env\Scripts\pip install -r requirements-dev.txt
-..\env\Scripts\python -m pytest tests -q          # 43 unit tests: preprocessing, aspects, lexicon, anomaly, risk, accounts
+..\env\Scripts\python -m pytest tests -q          # 52 unit tests: preprocessing, aspects, lexicon, anomaly, risk, accounts, explanation, CSV
 ..\env\Scripts\python -m scripts.smoke_test       # 23 end-to-end API tests against a running server
 ```
 

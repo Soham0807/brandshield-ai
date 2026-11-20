@@ -68,6 +68,46 @@ LEXICON_WEIGHT = 0.35   # how much a lexicon hit moves the probabilities
 NEUTRAL_SCALE = 0.6
 
 
+def lexicon_terms(text: str) -> list[dict]:
+    """Lexicon entries found in the text (same matching rules as lexicon_polarity)."""
+    words = _WORD_RE.findall(text.lower())
+    joined = f" {' '.join(words)} "
+    found, consumed = [], set()
+    for term, weight in LEXICON.items():
+        if " " not in term or f" {term} " not in joined:
+            continue
+        found.append({"term": term, "weight": weight, "negated": False})
+        parts = term.split()
+        for i in range(len(words) - len(parts) + 1):
+            if words[i:i + len(parts)] == parts:
+                consumed.update(range(i, i + len(parts)))
+    for i, w in enumerate(words):
+        weight = LEXICON.get(w)
+        if i in consumed or weight is None:
+            continue
+        negated = any(n in NEGATORS for n in words[max(0, i - 2): i + 3] if n != w)
+        found.append({"term": w, "weight": -weight if negated else weight, "negated": negated})
+    return found
+
+
+def explain(model: "SentimentModel", text: str, max_words: int = 40) -> dict:
+    """Word importance by occlusion: drop each word, re-score, and measure how
+    far the sentiment score (positive minus negative) moves. A positive impact
+    means the word pushed the prediction towards positive."""
+    words = text.split()
+    base = model.predict([text])[0]
+    impacts = []
+    if 1 < len(words) <= max_words:
+        variants = [" ".join(words[:i] + words[i + 1:]) for i in range(len(words))]
+        for word, pred in zip(words, model.predict(variants)):
+            impact = base["score"] - pred["score"]
+            if abs(impact) >= 0.02:
+                impacts.append({"word": word, "impact": round(impact, 3)})
+        impacts.sort(key=lambda d: abs(d["impact"]), reverse=True)
+    return {"words": impacts[:8], "lexicon": lexicon_terms(text), "neutral_scale": NEUTRAL_SCALE,
+            "too_long": len(words) > max_words}
+
+
 def lexicon_polarity(text: str) -> float | None:
     words = _WORD_RE.findall(text.lower())
     joined = f" {' '.join(words)} "

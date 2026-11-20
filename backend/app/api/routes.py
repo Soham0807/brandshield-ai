@@ -4,13 +4,13 @@ import asyncio
 import csv
 import io
 import json
-from typing import Literal
+from typing import Annotated, Literal
 
 import httpx
 
 from urllib.parse import urlencode, urlparse
 
-from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field
 
@@ -89,20 +89,37 @@ def risk(request: Request):
 # ---------------------------------------------------------------------------
 # Mentions
 # ---------------------------------------------------------------------------
-@router.get("/mentions")
-def mentions(request: Request,
-             sentiment: Literal["positive", "neutral", "negative"] | None = None,
-             source: str | None = None,
-             aspect: str | None = None,
-             language: str | None = None,
-             spam: bool | None = None,
-             origin: Literal["live", "simulated"] | None = None,
-             parent_id: str | None = Query(None, max_length=64),
-             q: str | None = Query(None, max_length=200),
-             hours: float | None = Query(None, gt=0, le=24 * 90),
-             sort: Literal["newest", "oldest", "engagement", "most_negative"] = "newest",
-             limit: int = Query(50, ge=1, le=500),
-             offset: int = Query(0, ge=0)):
+class MentionFilters(BaseModel):
+    sentiment: Literal["positive", "neutral", "negative"] | None = None
+    source: str | None = None
+    aspect: str | None = None
+    language: str | None = None
+    spam: bool | None = None
+    origin: Literal["live", "simulated"] | None = None
+    parent_id: str | None = Field(None, max_length=64)
+    q: str | None = Field(None, max_length=200)
+    hours: float | None = Field(None, gt=0, le=24 * 90)
+    sort: Literal["newest", "oldest", "engagement", "most_negative"] = "newest"
+
+
+def mention_filters(sentiment: Literal["positive", "neutral", "negative"] | None = None,
+                    source: str | None = None,
+                    aspect: str | None = None,
+                    language: str | None = None,
+                    spam: bool | None = None,
+                    origin: Literal["live", "simulated"] | None = None,
+                    parent_id: str | None = Query(None, max_length=64),
+                    q: str | None = Query(None, max_length=200),
+                    hours: float | None = Query(None, gt=0, le=24 * 90),
+                    sort: Literal["newest", "oldest", "engagement", "most_negative"] = "newest") -> MentionFilters:
+    return MentionFilters(sentiment=sentiment, source=source, aspect=aspect, language=language, spam=spam,
+                          origin=origin, parent_id=parent_id, q=q, hours=hours, sort=sort)
+
+
+def _mention_query(f: MentionFilters) -> tuple[str, list, str]:
+    """WHERE clause, its parameters and ORDER BY for the mention filters."""
+    sentiment, source, aspect, language, spam = f.sentiment, f.source, f.aspect, f.language, f.spam
+    origin, parent_id, q, hours = f.origin, f.parent_id, f.q, f.hours
     where, params = [], []
     if sentiment:
         where.append("sentiment = ?")
@@ -134,11 +151,50 @@ def mentions(request: Request,
         params.append(to_iso(utcnow() - timedelta(hours=hours)))
     clause = f"WHERE {' AND '.join(where)}" if where else ""
     order = {"newest": "created_at DESC", "oldest": "created_at ASC",
-             "engagement": "engagement DESC", "most_negative": "score ASC"}[sort]
+             "engagement": "engagement DESC", "most_negative": "score ASC"}[f.sort]
+    return clause, params, order
+
+
+@router.get("/mentions")
+def mentions(request: Request, f: Annotated[MentionFilters, Depends(mention_filters)],
+             limit: int = Query(50, ge=1, le=500),
+             offset: int = Query(0, ge=0)):
+    clause, params, order = _mention_query(f)
     db = core(request).db
     total = db.scalar(f"SELECT COUNT(*) FROM mentions {clause}", params)
     rows = db.query(f"SELECT * FROM mentions {clause} ORDER BY {order} LIMIT ? OFFSET ?", params + [limit, offset])
     return {"total": total, "items": [decode_mention(r) for r in rows]}
+
+
+EXPORT_COLUMNS = ["created_at", "source", "author", "text", "sentiment", "confidence", "score",
+                  "aspects", "language", "is_spam", "engagement", "origin", "url"]
+
+
+def _csv_cell(value):
+    # stop spreadsheet apps from running text that starts with = + - @ as a formula
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@"):
+        return "'" + value
+    return value
+
+
+@router.get("/mentions/export.csv")
+def export_mentions(request: Request, f: Annotated[MentionFilters, Depends(mention_filters)],
+                    limit: int = Query(10_000, ge=1, le=50_000)):
+    """The filtered mention list as a CSV file (opens in Excel / Google Sheets)."""
+    clause, params, order = _mention_query(f)
+    rows = core(request).db.query(f"SELECT * FROM mentions {clause} ORDER BY {order} LIMIT ?", params + [limit])
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(EXPORT_COLUMNS)
+    for row in rows:
+        m = decode_mention(row)
+        aspects = "; ".join(f"{a.get('aspect')}:{a.get('sentiment')}" for a in (m.get("aspects") or [])
+                            if isinstance(a, dict))
+        values = {**m, "aspects": aspects, "is_spam": int(bool(m.get("is_spam")))}
+        writer.writerow([_csv_cell(values.get(c, "")) for c in EXPORT_COLUMNS])
+    stamp = utcnow().strftime("%Y%m%d-%H%M")
+    return Response("﻿" + out.getvalue(), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="brandshield-mentions-{stamp}.csv"'})
 
 
 @router.get("/mentions/facets")
@@ -169,6 +225,8 @@ async def analyze(request: Request, body: AnalyzeRequest):
     aspect_items = (await asyncio.to_thread(app.aspects.analyze_batch, [prepared.model_text], [sentiment],
                                             app.model))[0]
     elapsed_ms = (asyncio.get_running_loop().time() - started) * 1000
+    from app.nlp.sentiment import explain
+    explanation = await asyncio.to_thread(explain, app.model, prepared.model_text)
     stored = None
     if body.store:
         raw = {"source": body.source, "author": body.author, "text": body.text}
@@ -177,6 +235,7 @@ async def analyze(request: Request, body: AnalyzeRequest):
     return {
         "preprocessing": prepared.to_dict(),
         "sentiment": sentiment,
+        "explanation": explanation,
         "aspects": aspect_items,
         "clauses": app.aspects.extract_clauses(prepared.model_text),
         "model": app.model.active_model,

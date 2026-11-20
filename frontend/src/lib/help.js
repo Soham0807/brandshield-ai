@@ -34,6 +34,10 @@ export const PAGE_HELP = {
     title: 'Try the AI yourself',
     text: 'Type any comment (English, Hinglish, Hindi or Marathi) and see every step the system takes: cleaning, language detection, spam check, sentiment and topic-level sentiment.',
   },
+  '/report': {
+    title: 'Management summary',
+    text: 'Risk, sentiment, topics, the worst complaints and recent alerts on one page. Print it or save it as a PDF; the CSV button downloads the underlying mentions.',
+  },
   '/system': {
     title: 'How well and how fast it works',
     text: 'Live speed of the processing pipeline, plus the accuracy of the sentiment model measured on comments labelled by our team.',
@@ -57,6 +61,7 @@ export const NAV_HELP = {
   Topics: 'Sentiment per topic: delivery, price, service…',
   Alerts: 'Issues the system detected automatically',
   'Analyze Text': 'Type a comment and watch the AI analyse it step by step',
+  Report: 'One-page brand summary to print, save as PDF or export as CSV',
   Performance: 'Speed of the pipeline and accuracy of the model',
   Settings: 'Brand, keywords, topics and alert notifications',
 }

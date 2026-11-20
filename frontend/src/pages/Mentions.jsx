@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { Download, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import MentionRow from '../components/MentionRow'
@@ -87,10 +87,16 @@ export default function Mentions() {
         title={`${total.toLocaleString()} mentions`}
         bodyClass="pt-2"
         action={
-          <label className="flex items-center gap-2 text-xs text-stone-400">
-            <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} className="accent-red-500" />
-            Live updates
-          </label>
+          <div className="flex items-center gap-4">
+            <a href={`/api/mentions/export.csv${qs(filters)}`} title="Download every mention matching these filters (up to 10,000) as a spreadsheet"
+               className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-50">
+              <Download size={13} /> Export CSV
+            </a>
+            <label className="flex items-center gap-2 text-xs text-stone-400">
+              <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} className="accent-red-500" />
+              Live updates
+            </label>
+          </div>
         }
       >
         {mentions.loading && !mentions.data ? (
