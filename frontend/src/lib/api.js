@@ -16,6 +16,9 @@ async function request(method, path, body, isForm = false) {
   } catch {
     data = { detail: text }
   }
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new Event('brandshield:unauthorized'))
+  }
   if (!res.ok) {
     const detail = data?.detail
     const message = Array.isArray(detail)

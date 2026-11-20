@@ -118,6 +118,9 @@ def _rule_lemmatize(word: str) -> str:
 
 
 def lemmatize(word: str) -> str:
+    # WordNet strips the "s" of short words ("us" -> "u", "was" -> "wa"); they have no other form
+    if len(word) <= 3:
+        return word
     if _LEMMATIZER is not None and word.isascii():
         lemma = _LEMMATIZER.lemmatize(word)
         return _LEMMATIZER.lemmatize(lemma, pos="v") if lemma == word else lemma

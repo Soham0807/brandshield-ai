@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import AuthGate from './components/AuthGate'
 import Layout from './components/Layout'
 import './index.css'
 import './lib/charts'
@@ -21,6 +22,7 @@ import System from './pages/System'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
+    <AuthGate>
     <LiveProvider>
       <BrowserRouter>
         <Routes>
@@ -40,6 +42,7 @@ createRoot(document.getElementById('root')).render(
         </Routes>
       </BrowserRouter>
     </LiveProvider>
+    </AuthGate>
     </ThemeProvider>
   </StrictMode>,
 )

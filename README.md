@@ -169,6 +169,22 @@ Limitations to report honestly: the test set is small; mixed opinions ("tasty fo
 negative; some Hinglish complaints about price ("bahut mehenga hai") are still missed; the simulator's templates are written
 by the team, so the live agreement number is optimistic. Twitter/X search needs a paid API tier, and Reddit blocks unauthenticated access.
 
+## Dashboard login
+
+Set `ADMIN_PASSWORD` (and optionally `ADMIN_USERNAME`, default `admin`) in `backend/.env` to require sign-in.
+Every `/api` call and the live WebSocket then need a session; the login is a signed, HttpOnly, SameSite cookie
+(HMAC-SHA256, 12-hour expiry, invalidated when the password changes), and five wrong passwords lock a client
+out for five minutes. Leave `ADMIN_PASSWORD` empty for open access during development.
+
+## Testing
+
+```bash
+cd backend
+..\env\Scripts\pip install -r requirements-dev.txt
+..\env\Scripts\python -m pytest tests -q          # 30 unit tests: preprocessing, aspects, lexicon, anomaly, risk, login
+..\env\Scripts\python -m scripts.smoke_test       # 18 end-to-end API tests against a running server
+```
+
 ## Configuration
 
 Copy `backend/.env.example` to `backend/.env` for API keys (Reddit, Twitter, Instagram), SMTP email, Slack/Teams webhooks, Twilio SMS, or Kafka.
@@ -180,10 +196,13 @@ Brand name, keywords, sources, aspects, thresholds and notification channels can
 backend/
   app/            FastAPI application (api, collectors, nlp, analytics, alerts, pipeline)
   eval/           labelled evaluation data
-  scripts/        evaluate_model.py
+  scripts/        evaluate_model.py, smoke_test.py
+  tests/          pytest unit tests
   data/           SQLite database + evaluation results (created at runtime)
 frontend/         React dashboard (Vite)
+deploy/           Ubuntu server + Hugging Face Spaces deployment
+docs/             SRS, report, paper, UML, presentation, user manual
 start.bat         one-click start on Windows
 docker-compose.yml  Kafka + backend
-app.py, routes/, services/, templates/, scripts/, data/   earlier Flask prototype (phase 1)
+legacy/           earlier Flask prototype (phase 1), kept for reference only
 ```

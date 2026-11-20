@@ -16,6 +16,7 @@ import httpx
 
 BASE = "http://127.0.0.1:8000"
 results = []
+SESSION_COOKIE = None
 
 
 def record(tc, name, ok, detail):
@@ -28,6 +29,19 @@ def main():
 
     r = c.get("/api/health")
     record("TC-01", "Health check", r.status_code == 200 and r.json().get("status") == "ok", f"{r.status_code} {r.json()}")
+
+    # Dashboard login (only when ADMIN_PASSWORD is set in backend/.env)
+    from app.config import settings
+    if settings.admin_password:
+        r = c.get("/api/mentions")
+        record("TC-32", "API refused without login", r.status_code == 401, f"{r.status_code}")
+        r = c.post("/api/auth/login", json={"username": settings.admin_username, "password": "wrong-password"})
+        record("TC-33", "Wrong password refused", r.status_code == 401, f"{r.status_code}")
+        r = c.post("/api/auth/login", json={"username": settings.admin_username, "password": settings.admin_password})
+        record("TC-34", "Login with correct password", r.status_code == 200 and "brandshield_session" in c.cookies,
+               f"{r.status_code}, session cookie {'set' if 'brandshield_session' in c.cookies else 'missing'}")
+    global SESSION_COOKIE
+    SESSION_COOKIE = c.cookies.get("brandshield_session")
 
     a = c.post("/api/analyze", json={"text": ""}).status_code
     b = c.post("/api/analyze", json={"text": "x" * 5001}).status_code
@@ -109,7 +123,12 @@ def main():
 
 async def websocket_check():
     import websockets
-    async with websockets.connect(BASE.replace("http", "ws") + "/ws") as ws:
+    headers = {"Cookie": f"brandshield_session={SESSION_COOKIE}"} if SESSION_COOKIE else {}
+    try:  # websockets >= 14
+        conn = websockets.connect(BASE.replace("http", "ws") + "/ws", additional_headers=headers)
+    except TypeError:
+        conn = websockets.connect(BASE.replace("http", "ws") + "/ws", extra_headers=headers)
+    async with conn as ws:
         first = json.loads(await asyncio.wait_for(ws.recv(), 10))
         await ws.send("ping")
         pong = None

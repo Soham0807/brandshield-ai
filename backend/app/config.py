@@ -131,6 +131,13 @@ class Settings(BaseSettings):
     # ---- Web ------------------------------------------------------------
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # ---- Dashboard login ------------------------------------------------
+    # Set ADMIN_PASSWORD to require a login for the dashboard and API.
+    # Empty = open access (local development).
+    admin_username: str = "admin"
+    admin_password: str = ""
+    session_hours: float = 12
+
     @property
     def keyword_list(self) -> list[str]:
         return [k.strip() for k in self.brand_keywords.split(",") if k.strip()]

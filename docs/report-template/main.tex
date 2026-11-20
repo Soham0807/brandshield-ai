@@ -1,0 +1,509 @@
+\documentclass[12pt,a4]{report}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{titletoc,tocloft}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\evensidemargin 0.5in
+\oddsidemargin 0.0in
+\topmargin 0.5in
+\textwidth 6.5in
+\headheight 0.3in
+\headsep 0in
+\usepackage[]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,snakes,automata,backgrounds,petri}
+\usepackage{tabularx}
+\usepackage{pgfgantt}
+\usepackage[margin=1in]{geometry}
+\usepackage{lscape}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage[titletoc]{appendix}
+\renewcommand{\bibname}{References}
+\setcounter{secnumdepth}{5}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{caption}
+\usepackage{tocloft}
+\usepackage[ruled,vlined]{algorithm2e}
+\newcommand{\cellpadding}{\renewcommand{\arraystretch}{1.2}}
+\newcommand{\headerpadding}{\renewcommand{\arraystretch}{1.5}}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\textheight 8.5in
+\newcommand{\pa}{\hspace{3ex}}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\fs}{\hspace{2ex}}
+\newcommand{\no}{\noindent}
+\newcommand{\hs}{\hspace{1ex}}
+\newtheorem{myth}{Theorem}
+\newcommand{\smci}{{\bf smci }}
+\newcommand{\smcd}{{\bf smcd }}
+\newcommand{\smc}{{\bf smc }}
+\newcommand{\ab}{{\bf sc4c }}
+\newcommand{\hub}{H\"ubler }
+\newcommand{\ds}{D^m_f}
+\newtheorem{prop}{Proposition}
+\newtheorem{cor}{Corollary}
+\newtheorem{defn}{Definition}
+\newcommand{\rr}{{\cal R }^2 }
+\newcommand{\zz}{{\cal Z }^2 }
+\newcommand{\at}{{A_o}^T}
+\newcommand{\ato}{{A_1}^T}
+\newcommand{\ath}{{\at}_{\hat{h}}}
+\newcommand{\ata}{\tilde{\at}}
+\newcommand{\on}{(s_1,\hat{s_1}]}
+\newcommand{\tw}{(\hat{s_1},b]}
+\newcommand{\hb}{\hat{B}}
+\newcommand{\hfo}{{\hat{f}}_1}
+\newcommand{\xy}{(x,y)}
+\newcommand{\txy}{(t_x,t_y)}
+\renewcommand{\r}{{\cal R}}
+\newcommand{\ct}{\hat{C}_1^T}
+\newcommand{\xh}{X_{\hat{h}}}
+\newcommand{\ball}{B((x_o,y_o),r)}
+\newcommand{\snbd}{S((x_o,y_o),k)}
+\newcommand{\xyo}{(x_o,y_o)}
+\newtheorem{obs}{Observation}
+\newtheorem{lemma}{Lemma}
+\newcommand{\CC}{{\cal C }}
+\newcommand{\DD}{{\cal D }}
+\newcommand{\cset}{{\{C\}}}
+\newcommand{\dset}{{\{D\}}}
+\newcommand{\sdset}{{\sigma_{\dset}}}
+\newcommand{\dsetm}{{m\dset}}
+\newcommand{\sdsetm}{{\sigma_{\dsetm}}}
+\newcommand{\od}{{O_D}}
+\newcommand{\id}{{I_D}}
+\newcommand{\ido}{{\id_1}}
+\newcommand{\idt}{{\id_2}}
+\newcommand{\odo}{{\od_1}}
+\newcommand{\odt}{{\od_2}}
+\newcommand{\rido}{{R(\ido)}}
+\newcommand{\ridt}{{R(\idt)}}
+\newcommand{\rodo}{{R(\odo)}}
+\newcommand{\rodt}{{R(\odt)}}
+\newcommand{\xe}{$x$-extent}
+\newcommand{\ye}{$y$-extent}
+\newcommand{\kxo}{k_{x1}}
+\newcommand{\kxt}{k_{x2}}
+\newcommand{\kxth}{k_{x3}}
+\newcommand{\kyo}{k_{y1}}
+\newcommand{\kyt}{k_{y2}}
+\newcommand{\kyth}{k_{y3}}
+\newcommand{\Ra}{{\Rightarrow}}
+\newcommand{\is}{\Rightarrow \hspace{10mm}}
+\newcommand{\vs}{\vspace{0.2in}}
+\newcommand{\im}{{\lfloor m \rfloor}}
+\newcommand{\fm}{{<m>}}
+\newcommand{\dm}{{\Delta m}}
+\newcommand{\ic}{{\lfloor c \rfloor}}
+\newcommand{\fc}{{<c>}}
+\newcommand{\dc}{{\Delta c}}
+\newcommand{\yi}{{y_i}}
+\renewcommand{\xi}{{x_i}}
+\newcommand{\alpp}{{{\alpha}_{2}}}
+\newcommand{\alp}{{{\alpha}_{1}}}
+\newcommand{\bett}{{{\beta}_{2}}}
+\newcommand{\bet}{{{\beta}_{1}}}
+\newcommand{\lqr}{{\lfloor q \rfloor}}
+\newcommand{\ramax}{R_{max}^A}
+\newcommand{\ramin}{R_{min}^A}
+\newtheorem{property}{Property}
+\newcommand{\sla}{{{S_{\lambda}}}}
+\newcommand{\vf}{{\vspace{0.50in}}}
+\newcommand{\ms}{\;}
+\renewcommand{\appendixname}{Annexure}
+
+% Define counters for modules, submodules, and sub-submodules
+\newcounter{lofmodule}
+\newcounter{lofsubmodule}[lofmodule]
+\newcounter{lofsubsubmodule}[lofsubmodule]
+
+% Reset lower counters when higher-level increments
+\renewcommand{\thelofmodule}{\arabic{lofmodule}}
+\renewcommand{\thelofsubmodule}{\thelofmodule.\arabic{lofsubmodule}}
+\renewcommand{\thelofsubsubmodule}{\thelofsubmodule.\arabic{lofsubsubmodule}}
+
+% Command for List of Figures module (level 1)
+\newcommand{\lofsection}[1]{%
+  \refstepcounter{lofmodule}%
+  \setcounter{lofsubmodule}{0}%
+  \setcounter{lofsubsubmodule}{0}%
+  \addtocontents{lof}{\protect\vspace{1em}}%
+  \addtocontents{lof}{\protect\noindent \textbf{\thelofmodule.\hspace{1em} #1}\protect\par}%
+  \addtocontents{lof}{\protect\vspace{0.5em}}%
+}
+
+% Command for List of Figures submodule (level 2)
+\newcommand{\lofsubsection}[1]{%
+  \refstepcounter{lofsubmodule}%
+  \setcounter{lofsubsubmodule}{0}%
+  \addtocontents{lof}{\protect\vspace{0.5em}\noindent \textbf{\thelofsubmodule.\hspace{1em} #1}\protect\par}%
+}
+
+% Command for List of Figures sub-submodule (level 3)
+\newcommand{\lofsubsubsection}[1]{%
+  \refstepcounter{lofsubsubmodule}%
+  \addtocontents{lof}{\protect\noindent \hspace{0em}\textbf{\thelofsubsubmodule.\hspace{1em}\vspace{0.5em} #1}\protect\par}%
+}
+\renewcommand{\contentsname}{INDEX}
+
+\fancypagestyle{chaptertitle}{
+  \fancyhf{} % clear all
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+\makeatletter
+\def\@makechapterhead#1{%
+  \vspace*{\fill}%
+  \begin{center}
+    {\Huge\bfseries CHAPTER \thechapter\\[1.5ex]#1}
+  \end{center}
+  \thispagestyle{chaptertitle}% 
+  \vspace*{\fill}
+  \clearpage
+}
+\def\@makeschapterhead#1{%
+  \vspace*{\fill}%
+  \begin{center}
+    {\Huge\bfseries #1}
+  \end{center}
+  \thispagestyle{chaptertitle}%
+  \vspace*{\fill}
+  \clearpage
+}
+\makeatother
+
+\newcommand{\createGanttChart}{%
+    \begin{table}[htbp]
+    \centering
+    \begingroup
+    \renewcommand\sfdefault{phv}
+    \renewcommand\mddefault{mc}
+    \renewcommand\bfdefault{bc}
+    
+    \sffamily
+    \begin{ganttchart}[
+        % --- Chart Styling ---
+        canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+        hgrid style/.style={draw=black!5, line width=.75pt},
+        vgrid={*1{draw=black!5, line width=.75pt}},
+        title/.style={draw=none, fill=none},
+        title label font=\bfseries\footnotesize,
+        title label node/.append style={below=7pt},
+        include title in canvas=false,
+        bar label font=\mdseries\small\color{black!70},
+        bar label node/.append style={left=2cm},
+        bar/.append style={draw=none, fill=black!63},
+        bar incomplete/.append style={fill=barblue},
+        bar progress label font=\mdseries\footnotesize\color{black!70},
+        group incomplete/.append style={fill=groupblue},
+        group left shift=0,
+        group right shift=0,
+        group height=.5,
+        group peaks tip position=0,
+        group label node/.append style={left=.6cm},
+        group progress label font=\bfseries\small,
+        x unit=0.7cm,
+        title label node/.append style={xshift=0.1cm}
+    ]{1}{12}
+      % --- Titles ---
+      \gantttitle[
+        title label node/.append style={below left=7pt and -3pt}
+      ]{2025}{12} \\
+      \gantttitlelist[
+        title label node/.append style={below left=7pt and -3pt}
+      ]{{"Jan"}, {"Feb"}, {"Mar"}, {"Apr"}, {"May"}, {"Jun"}, {"Jul"}, {"Aug"}, {"Sep"}, {"Oct"}, {"Nov"}, {"Dec"}}{1} \\
+      % --- Tasks ---
+      \ganttgroup{Project Timeline}{1}{12} \\
+      \ganttbar[name=planning]{\textbf{1.} Initial Planning and Requirement Gathering}{1}{2} \\
+      \ganttbar[name=research]{\textbf{2.} Research and Technology Selection}{3}{4} \\
+      \ganttbar[name=dataset]{\textbf{3.} Dataset Collection and Preprocessing}{5}{6} \\
+      \ganttbar[name=prototype]{\textbf{4.} Prototype Development and PoC}{7}{8} \\
+      \ganttbar[name=testing]{\textbf{5.} Testing and Validation}{9}{10} \\
+      \ganttbar[name=implementation]{\textbf{6.} Final Implementation and Deployment}{11}{12}\\
+      \ganttbar[name=documentation]{\textbf{7.} Documentation}{10}{12}
+    \end{ganttchart}
+    \endgroup
+    \caption{Project Timeline}
+    \label{gantt:project-timeline}
+    \end{table}
+}
+\input{psfig.sty}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\pagestyle{empty}
+
+
+\vspace*{\fill}
+\begin{center}
+
+{\large  A  PROJECT REPORT ON}\\
+\vspace{0.5cm}
+\vspace{0.5cm}
+{\bfseries \fontsize{16}{12} \selectfont{Project Name}  \\ \vspace*{1\baselineskip}}
+{\bfseries \fontsize{14}{12} \selectfont{Short Desription}  \\ \vspace*{2\baselineskip}}
+{\fontsize{12}{12} \selectfont Submitted towards the
+ \\Partial Fulfilment of the Requirements of} \\
+\vspace{1cm}
+{\bfseries \fontsize{14}{12} \selectfont BACHELOR OF TECHNOLOGY \\
+\vspace*{0.5\baselineskip}
+IN
+\vspace*{0.5\baselineskip}
+\\ARTIFICIAL INTELLIGENCE AND DATA SCIENCE\\
+\vspace*{1\baselineskip}} 
+\fontsize{14}{12} \selectfont \textbf{By} \\
+{\large \begin{center}
+\begin{tabular}{l l}
+Student Name 1        & Examination Seat No:  \\
+Student Name 2            & Examination Seat No:  \\
+Student Name 3        & Examination Seat No:  \\
+\end{tabular}
+\end{center}}
+{\bfseries \large Under the guidance of} \\
+\vspace{0.5cm}
+{\bfseries \large Prof.Guide Name} \\ \vspace{0.5cm}
+
+\begin{figure}[!h]
+\centering
+  \includegraphics[width=1.5in]{KKWLOGO.v1.jpg}
+\end{figure}
+
+
+{\small Department of Artificial Intelligence and Data Science}\\
+\fontsize{13}{13} \selectfont K. K. WAGH EDUCATION SOCIETY\textquotesingle S\\
+\fontsize{13}{13} \selectfont K. K. WAGH INSTITUTE OF ENGINEERING EDUCATION AND RESEARCH\\
+Hirabai Haridas Vidyanagari, Amrutdham, Panchavati, Nashik, Maharashtra 422003 \\
+(An Autonomous Institute since 2022, affiliated to Savitribai Phule Pune University)\\
+A. Y. 2025-2026
+\vspace*{\fill}
+\end{center}
+
+\pagebreak
+
+\input{Certificate.tex}
+\pagebreak
+
+\pagenumbering{Roman}
+\setcounter{page}{1}
+
+% Define a page style for roman numbered pages with centered footer
+\fancypagestyle{romanpages}{
+  \fancyhf{} % clear all
+  \fancyfoot[C]{\thepage} % centered page number in footer
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+% Page I: Abstract
+\pagestyle{romanpages}
+\input{Abstract.tex}
+\pagebreak
+
+% Page II: Acknowledgement
+\input{Ack.tex}
+\bibliographystyle{plain}
+\newpage
+
+% Page III: INDEX (Table of Contents) - no header/footer on any page
+\pagestyle{romanpages}
+\tableofcontents
+\addtocontents{toc}{\protect\thispagestyle{romanpages}}
+
+\let\origaddvspace\addvspace
+\renewcommand{\addvspace}[1]{}
+
+% Page IV: List of Tables - no header/footer
+\clearpage
+\pagestyle{romanpages}
+	\setcounter{lotdepth}{2} 
+\listoftables
+\addtocontents{lot}{\protect\thispagestyle{romanpages}}
+
+% Page V: List of Figures
+\clearpage
+\pagestyle{romanpages}
+	% \addcontentsline{toc}{section}{\bf LIST OF FIGURES}
+	\setcounter{lofdepth}{2} 
+\listoffigures
+\addtocontents{lof}{\protect\thispagestyle{romanpages}}
+
+
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\fancyhf{}
+\renewcommand{\footrulewidth}{0.4pt}
+\lfoot{KKWIEER, Department of Artificial Intelligence and Data Science, 2025}
+\rfoot{Page \thepage}
+
+\fancypagestyle{plain}{ 
+    \fancyhf{} 
+    \lfoot{KKWIEER, Department of Artificial Intelligence and Data Science}
+    \rfoot{Page \thepage}
+    \renewcommand{\headrulewidth}{0.4pt} 
+    \renewcommand{\footrulewidth}{0.4pt} 
+}
+\pagestyle{fancy}
+
+\setlength{\parindent}{11mm}
+
+
+
+
+\chapter{INTRODUCTION}
+
+\section{Project Idea}
+
+\section{Motivation of the Project}
+
+
+\chapter{LITERATURE SURVEY}
+
+
+\chapter{PROBLEM DEFINITION \vspace*{0.5\baselineskip} AND SCOPE}
+\section{Problem Statement}
+
+
+\section{Methodology}
+
+\section{Outcome}
+
+
+
+\chapter{PROJECT PLAN}
+
+\section{Project Timeline}
+    \createGanttChart
+ 
+\section{Team Organization}
+
+ 
+\chapter{SOFTWARE REQUIREMENT \vspace*{0.5\baselineskip} SPECIFICATION}
+\section{Functional Requirements}
+
+\section{Non-Functional Requirements}
+
+\section{Constraints}
+
+\section{Hardware Requirements}
+
+\section{Software Requirements}
+
+\section{Interfaces}
+
+\chapter{DETAILED DESIGN}
+
+\section{Architectural Design}
+
+\vspace{0.3cm} 
+
+% \lofsection{System Architecure}
+% \begin{figure}[!htbp]
+% \centering
+% % Rotate 90 degrees to make it portrait
+% \rotatebox{0}{%
+%     \includegraphics[width=\linewidth, height=23cm, keepaspectratio]{./Architecture_Portrait.png}%
+% }
+% \caption{PolicyVault Nexus - 3-Tier Model}
+% \label{architecture}
+% \end{figure}
+
+
+\section{Overview of Project Modules}
+
+\section{User Interface}
+
+\section{Data design}
+\subsection{ Data structure}
+
+\subsection{Database Description}
+
+\section{UML Diagrams}
+\vspace{0.1cm}
+% \lofsection{UML Diagrams}
+% \begin{itemize}
+%     \item \textbf{Use Case Diagram}
+%     \begin{figure}[H]
+%     \centering
+%     % Keep rotation 0 for portrait alignment
+%     \rotatebox{0}{%
+%         \includegraphics[width=18cm, height=15cm, keepaspectratio]{./usecase_diagram.png}%
+%     }
+%     \caption{Use Case Diagram}
+%     \label{fig:usecase}
+% \end{figure}
+% \vspace{0.5cm}
+% \end{itemize}
+
+\section{Tools and Technology Used}
+
+
+\section{Algorithm}
+
+ \chapter{RESULTS AND DISCUSSION}
+ \section{Experimental Setup}
+ \subsection{Dataset}
+
+\subsection{Performance Parameters}
+
+\subsection{Efficiency Issues}
+
+ \section{Software Testing}
+  \subsection{Test Cases and Test Results}
+ 
+ \section{Summary}
+ \subsection{Result Analysis and Discussion}
+ 
+
+ 
+ \chapter{CONCLUSION AND \vspace*{0.5\baselineskip} FUTURE WORK}
+
+ \section{Conclusions}
+ 
+ \section{Future Work}
+
+ \section{Application}
+ 
+\clearpage
+\pagenumbering{gobble}
+\pagestyle{empty}
+
+\makeatletter
+\renewcommand{\@chapapp}{Annexure}
+\renewcommand{\thechapter}{\Alph{chapter}}
+\makeatother
+
+% Custom annexure chapter style
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{%
+  \vspace*{\fill}%
+  \begin{center}
+    {\Huge\bfseries Annexure \thechapter\\[1.5ex]#1}
+  \end{center}
+  \thispagestyle{chaptertitle}% disable headers/footers
+  \vspace*{\fill}
+  \clearpage
+}
+\makeatother
+
+\begin{appendices}
+\chapter{References}
+\input{References.tex}
+\chapter{Plagiarism Report }
+\chapter{Paper Published (if any)}
+\chapter{Sponsorship detail (if any)}
+\end{appendices}
+\end{document}

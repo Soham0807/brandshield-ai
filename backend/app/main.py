@@ -13,7 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.auth_routes import router as auth_router
 from app.api.routes import router, ws_router
+from app.auth import AuthMiddleware
 from app.config import settings
 from app.core import App
 
@@ -38,12 +40,17 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+# Starlette runs the middleware added last first: CORS wraps the login check,
+# so 401 responses still carry CORS headers.
+app.add_middleware(AuthMiddleware, settings=settings)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
+app.include_router(auth_router)
 app.include_router(router)
 app.include_router(ws_router)
 

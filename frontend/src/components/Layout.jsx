@@ -1,4 +1,4 @@
-import { Activity, Moon, Sun, X } from 'lucide-react'
+import { Activity, LogOut, Moon, Sun, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { brandTitle } from '../lib/format'
@@ -6,6 +6,7 @@ import { NAV_HELP, PAGE_HELP } from '../lib/help'
 import { useApi } from '../lib/hooks'
 import { useLive, useLiveEvent } from '../lib/live'
 import { useTheme } from '../lib/theme'
+import { useAuth } from './AuthGate'
 import Backdrop from './Backdrop'
 import { LogoMark, SentimentRule, Wordmark } from './Brand'
 import { Tip, Toasts } from './ui'
@@ -26,6 +27,7 @@ const NAV = [
 export default function Layout() {
   const { connected, status } = useLive()
   const { resolved, toggle } = useTheme()
+  const { authEnabled, username, logout } = useAuth()
   const location = useLocation()
   const alerts = useApi('/alerts?status=open&limit=1', { interval: 60000 })
   useLiveEvent('alert', () => alerts.reload())
@@ -62,6 +64,12 @@ export default function Layout() {
                 {resolved === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
                 <span className="hidden sm:inline">{resolved === 'dark' ? 'Day' : 'Night'}</span>
               </button>
+              {authEnabled && (
+                <button type="button" onClick={logout} title={username ? `Signed in as ${username}` : 'Sign out'}
+                        className="flex items-center gap-1 uppercase tracking-[.14em] text-stone-500 transition hover:text-stone-50">
+                  <LogOut size={12} /> <span className="hidden sm:inline">Sign out</span>
+                </button>
+              )}
               <Tip text="Data updates on its own: new comments, risk score and alerts appear without refreshing the page.">
                 <span className={`flex items-center gap-1.5 font-semibold ${connected ? 'text-red-400' : 'text-stone-500'}`}>
                   <span className={`size-1.5 rounded-full ${connected ? 'bg-red-500 pulse-dot' : 'bg-stone-500'}`} />

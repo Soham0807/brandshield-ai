@@ -1,0 +1,27 @@
+% Remove any automatic bibliography title and formatting
+\makeatletter
+\renewenvironment{thebibliography}[1]
+     {\list{\@biblabel{\@arabic\c@enumiv}}%
+           {\settowidth\labelwidth{\@biblabel{#1}}%
+            \leftmargin\labelwidth
+            \advance\leftmargin\labelsep
+            \@openbib@code
+            \usecounter{enumiv}%
+            \let\p@enumiv\@empty
+            \renewcommand\theenumiv{\@arabic\c@enumiv}}%
+      \sloppy
+      \clubpenalty4000
+      \@clubpenalty \clubpenalty
+      \widowpenalty4000%
+      \sfcode`\.\@m}
+     {\def\@noitemerr
+       {\@latex@warning{Empty `thebibliography' environment}}%
+      \endlist}
+\makeatother
+\begin{thebibliography}{99}
+% Chicago or Hardward style references
+\bibitem{bufalino2025}
+Bufalino, Jacopo, Jose Luis Martin-Navarro, Mario Di Francesco, and Tuomas Aura. "Inside Job: Defending Kubernetes Clusters Against Network Misconfigurations." \textit{Proceedings of the ACM on Networking} 3, no. CoNEXT3 (2025): 1–25.
+
+
+\end{thebibliography}
