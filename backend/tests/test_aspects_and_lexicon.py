@@ -36,6 +36,34 @@ def test_lexicon_returns_none_without_regional_words():
     assert lexicon_polarity("zzz qqq") is None
 
 
+def test_hinglish_comparison_idiom_is_negative_for_the_brand():
+    # "isse acha toh infinix ka phone hota hai" = "Infinix is better than this"
+    assert lexicon_polarity("isse acha toh infinix ka phone hota hai") < 0
+    # plain praise still positive
+    assert lexicon_polarity("phone bahut acha hai") > 0
+
+
+def test_brand_risk_news_and_price_complaints_are_negative():
+    assert lexicon_polarity("Zomato lays off 250 employees") < 0
+    assert lexicon_polarity("Way too expensive for what it offers") < 0
+    assert lexicon_polarity("this is a scam") < 0
+
+
+def test_negated_risk_term_flips():
+    assert lexicon_polarity("this is not a scam") > 0
+
+
+def test_neutral_is_recalibrated_before_deciding():
+    from app.nlp.sentiment import SentimentModel
+    # model slightly prefers neutral over a clear negative lean -> negative after recalibration
+    # (before recalibration negative led by only 0.05 and the margin rule made it neutral)
+    out = SentimentModel._finalise("battery life could be better", {"positive": 0.05, "neutral": 0.45, "negative": 0.50})
+    assert out["label"] == "negative"
+    # a genuinely neutral text stays neutral
+    out = SentimentModel._finalise("the event starts at 5 pm", {"positive": 0.1, "neutral": 0.85, "negative": 0.05})
+    assert out["label"] == "neutral"
+
+
 def test_lexicon_scores_hinglish_praise_above_complaint():
     good = lexicon_polarity("khana bahut accha tha")
     bad = lexicon_polarity("khana bekar tha")

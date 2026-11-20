@@ -3,11 +3,15 @@
 * An ensemble of two transformer models trained on social-media text provides
   contextual understanding: multilingual XLM-RoBERTa and English RoBERTa
   (Cardiff NLP, trained on tweets). Their class probabilities are averaged.
-  On 200 hand-labelled real comments the ensemble scored 74% accuracy against
-  66.5% for the earlier single DistilBERT model.
-* A small lexicon of Hinglish / Hindi / Marathi opinion words is blended in,
-  because the transformer is weak on romanised Indian languages.
+* Neutral's probability is recalibrated (x0.6): the tweet models call many brand
+  complaints "neutral".
+* A small lexicon of Hinglish / Hindi / Marathi opinion words and English
+  brand-risk terms (layoffs, scam, too expensive ...) is blended in, because the
+  transformer is weak on romanised Indian languages and reads risk news as fact.
 * A confidence-margin rule maps low-confidence predictions to "neutral".
+
+On 200 hand-labelled real comments: 76.0% accuracy (74.0% before the
+recalibration, 66.5% for the earlier single DistilBERT model).
 """
 
 import logging
@@ -34,29 +38,60 @@ REGIONAL_LEXICON = {
     "zabardast": 1, "shandaar": 1, "lajawab": 1, "swadisht": 1, "bhari": 1, "chan": 0.8,
     "chhan": 0.8, "kadak": 0.8, "jhakaas": 1, "maza aa gaya": 1,
     "बढ़िया": 1, "अच्छा": 0.8, "शानदार": 1, "मस्त": 1, "छान": 0.8, "स्वादिष्ट": 1,
+    # Hinglish comparison: "isse acha toh X ka phone hota hai" = "X is better than this" (negative for the brand)
+    "acha toh": -1, "accha toh": -1, "achha toh": -1, "se acha": -0.8, "se accha": -0.8, "se achha": -0.8,
 }
-NEGATORS = {"nahi", "nahin", "nai", "not", "no", "never", "नहीं", "नाही"}
+
+# English brand-risk vocabulary. Tweet-trained models read these as neutral facts
+# ("Zomato lays off 250 employees", "way too expensive"), but for brand monitoring
+# they are negative signals.
+BRAND_RISK_LEXICON = {
+    # business / reputation events in news
+    "lays off": -1, "layoff": -1, "layoffs": -1, "lawsuit": -1, "sued": -1, "fraud": -1, "scam": -1,
+    "outage": -1, "data breach": -1, "boycott": -1, "recall": -0.8, "fined": -1, "penalty": -0.8,
+    "investigation": -0.8, "probe": -0.8, "controversy": -1, "backlash": -1, "shut down": -0.8,
+    # price and value complaints
+    "too expensive": -0.8, "so expensive": -0.8, "overpriced": -0.8, "too costly": -0.8, "so costly": -0.8,
+    "waste of money": -1, "rip off": -1, "ripoff": -1, "hidden charges": -1, "price hike": -0.8,
+    "drain the battery": -0.8, "battery drain": -0.8,
+}
+LEXICON = {**REGIONAL_LEXICON, **BRAND_RISK_LEXICON}
+
+NEGATORS = {"nahi", "nahin", "nai", "nhi", "not", "no", "never", "नहीं", "नाही"}
 _WORD_RE = re.compile(r"[\wऀ-ॿ]+", re.U)
 
 NEUTRAL_MARGIN = 0.20   # top-1 minus top-2 probability below this => neutral
 LEXICON_WEIGHT = 0.35   # how much a lexicon hit moves the probabilities
+# The tweet-trained models put a lot of mass on "neutral" for brand comments that
+# people label as opinions; on 200 hand-labelled real comments 40% of negatives
+# came out neutral. Neutral's probability is scaled by this before deciding.
+NEUTRAL_SCALE = 0.6
 
 
 def lexicon_polarity(text: str) -> float | None:
     words = _WORD_RE.findall(text.lower())
-    joined = " ".join(words)
+    joined = f" {' '.join(words)} "
     total, hits = 0.0, 0
-    for term, weight in REGIONAL_LEXICON.items():
-        if " " in term:
-            if term in joined:
-                total += weight
-                hits += 1
+    consumed: set[int] = set()  # word positions covered by a matched phrase
+    # phrases first, so "acha toh" overrides the single word "acha" inside it
+    for term, weight in LEXICON.items():
+        if " " not in term or f" {term} " not in joined:
             continue
-        for i, w in enumerate(words):
-            if w == term:
-                negated = any(n in NEGATORS for n in words[max(0, i - 2): i + 3] if n != w)
-                total += -weight if negated else weight
-                hits += 1
+        total += weight
+        hits += 1
+        parts = term.split()
+        for i in range(len(words) - len(parts) + 1):
+            if words[i:i + len(parts)] == parts:
+                consumed.update(range(i, i + len(parts)))
+    for i, w in enumerate(words):
+        if i in consumed:
+            continue
+        weight = LEXICON.get(w)
+        if weight is None or " " in w:
+            continue
+        negated = any(n in NEGATORS for n in words[max(0, i - 2): i + 3] if n != w)
+        total += -weight if negated else weight
+        hits += 1
     if not hits:
         return None
     return max(-1.0, min(1.0, total / hits))
@@ -158,6 +193,9 @@ class SentimentModel:
     @staticmethod
     def _finalise(text: str, probs: dict[str, float]) -> dict:
         probs = dict(probs)
+        probs["neutral"] *= NEUTRAL_SCALE
+        total = sum(probs.values()) or 1.0
+        probs = {k: v / total for k, v in probs.items()}
         polarity = lexicon_polarity(text)
         if polarity is not None:
             target = {

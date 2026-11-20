@@ -1,4 +1,4 @@
-"""Static configuration loaded from environment variables / backend/.env.
+﻿"""Static configuration loaded from environment variables / backend/.env.
 
 Values that users can change at runtime from the dashboard (brand name,
 keywords, thresholds, source toggles ...) live in ``app.runtime`` instead and
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # ---- NLP models -----------------------------------------------------
     # Ensemble (comma-separated, probabilities averaged): multilingual XLM-RoBERTa + English
-    # RoBERTa, both trained on tweets by Cardiff NLP. 74% on 200 real labelled comments.
+    # RoBERTa, both trained on tweets by Cardiff NLP. 76% on 200 real labelled comments (see nlp/sentiment.py).
     sentiment_model: str = ("cardiffnlp/twitter-xlm-roberta-base-sentiment,"
                             "cardiffnlp/twitter-roberta-base-sentiment-latest")
     # Tried in order if no ensemble member loads: the earlier multilingual DistilBERT, then binary SST-2
