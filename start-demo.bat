@@ -20,7 +20,7 @@ set HF_HUB_OFFLINE=1
 set TRANSFORMERS_OFFLINE=1
 
 start "BrandShield REAL :8000" /min cmd /c "cd /d "%~dp0backend" && "%~dp0env\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
-start "BrandShield DEMO :8001" /min cmd /c "cd /d "%~dp0backend" && set DATABASE_PATH=data/demo.db&& set SIMULATOR_RATE_PER_MIN=20&& "%~dp0env\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8001"
+start "BrandShield DEMO :8001" /min cmd /c "cd /d "%~dp0backend" && set DATABASE_PATH=data/demo.db&& set SIMULATOR_RATE_PER_MIN=20&& set ANALYTICS_INTERVAL_SECONDS=10&& "%~dp0env\Scripts\python.exe" -m uvicorn app.main:app --host 127.0.0.1 --port 8001"
 
 echo.
 echo Starting... the demo instance needs about 5 minutes to generate its history.

@@ -393,5 +393,13 @@ class App:
         self.simulator.start_crisis(aspect, minutes, intensity, utcnow())
         return self.simulator.crisis.to_dict(utcnow())
 
+    async def crisis_burst(self) -> int:
+        """Publish the crisis's opening burst (see MentionSimulator.opening_burst)."""
+        cfg = self.runtime.get()
+        burst = self.simulator.opening_burst(cfg["brand_name"], cfg["simulator_rate_per_min"], utcnow())
+        for mention in burst:
+            await self.publish(mention)
+        return len(burst)
+
     def recent_window(self, minutes: int):
         return to_iso(utcnow() - timedelta(minutes=minutes))

@@ -244,6 +244,21 @@ class MentionSimulator:
     def stop_crisis(self) -> None:
         self.crisis.until = None
 
+    def opening_burst(self, brand: str, rate_per_min: float, now: datetime, minutes: float = 5) -> list[dict]:
+        """Crisis mentions spread over the last few minutes, as if a complaint
+        thread had been building before anyone noticed. Makes the demo crisis
+        visible within one analytics tick instead of only after several minutes."""
+        if not self.crisis.active(now):
+            return []
+        start = now - timedelta(minutes=minutes)
+        lam = rate_per_min / 1.1 * (1 + 2.5 * self.crisis.intensity)
+        mentions, t = [], start
+        while True:
+            t += timedelta(minutes=self.rng.expovariate(lam))
+            if t >= now:
+                return mentions
+            mentions.append(self.generate(brand, t))
+
     def rate_multiplier(self, now: datetime, crisis: CrisisState | None = None) -> float:
         crisis = crisis or self.crisis
         factor = seasonal_factor(now)

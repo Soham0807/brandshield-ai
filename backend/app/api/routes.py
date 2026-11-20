@@ -396,6 +396,7 @@ async def start_crisis(request: Request, body: CrisisRequest):
     if not app.runtime.get()["sources"]["simulator"]:
         raise HTTPException(409, "Enable the simulator source first")
     state = app.crisis(body.aspect, body.minutes, body.intensity)
+    state["burst"] = await app.crisis_burst()
     await app.hub.broadcast("status", app.public_status())
     return state
 

@@ -111,7 +111,8 @@ The GitHub Student Developer Pack covers the cost: $200 DigitalOcean credit plus
 ## Demo script (for the review)
 
 1. **Dashboard**: KPIs, AI summary, sentiment trend, distribution, brand-risk gauge, aspect insights, live mention feed.
-2. **Settings → Crisis simulation**: start a *Delivery* crisis. Within about 1–2 minutes, the risk score jumps to HIGH and alerts
+2. **Settings → Crisis simulation**: start a *Delivery* crisis. The complaint thread that was building up arrives at once
+   (about five minutes of crisis comments), so within about 20 seconds the risk score jumps to HIGH/CRITICAL and alerts
    appear (*Sudden spike in negative sentiment*, *Multiple delivery complaints detected*, *Negative post is going viral*).
 3. **Trends & Forecast**: the anomaly chart marks the spike; the incident list and the Prophet forecast update.
 4. **Instagram**: connect a real Business/Creator account with Instagram login (see above) and watch real comments being classified per post.
