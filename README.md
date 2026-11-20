@@ -172,17 +172,26 @@ by the team, so the live agreement number is optimistic. Twitter/X search needs 
 ## Dashboard login
 
 Set `ADMIN_PASSWORD` (and optionally `ADMIN_USERNAME`, default `admin`) in `backend/.env` to require sign-in.
-Every `/api` call and the live WebSocket then need a session; the login is a signed, HttpOnly, SameSite cookie
-(HMAC-SHA256, 12-hour expiry, invalidated when the password changes), and five wrong passwords lock a client
-out for five minutes. Leave `ADMIN_PASSWORD` empty for open access during development.
+Leave it empty for open access during development.
+
+- **Accounts and roles.** The `.env` account is created as the first **admin**. Anyone can **sign up** from the
+  login screen and becomes a **viewer**: every page and Analyze Text work, but changes (settings, sources, crisis
+  simulation, deleting data) are refused with 403. Admins promote, demote and delete users under
+  **Settings → Users**; at least one admin always remains. Set `ALLOW_SIGNUP=false` to disable sign-up.
+- **Storage.** Accounts live in `backend/data/users.db`, separate from the mention database, so the real (8000)
+  and demo (8001) instances share them. Passwords are hashed with PBKDF2-HMAC-SHA256 (200,000 iterations,
+  random 16-byte salt).
+- **Sessions.** A signed, HttpOnly, SameSite cookie (HMAC-SHA256 with a server key in `data/session.key`,
+  12-hour expiry). Changing a password or deleting a user ends that user's sessions. Every `/api` call and the
+  live WebSocket require a session; five failed attempts lock a client out for five minutes.
 
 ## Testing
 
 ```bash
 cd backend
 ..\env\Scripts\pip install -r requirements-dev.txt
-..\env\Scripts\python -m pytest tests -q          # 30 unit tests: preprocessing, aspects, lexicon, anomaly, risk, login
-..\env\Scripts\python -m scripts.smoke_test       # 18 end-to-end API tests against a running server
+..\env\Scripts\python -m pytest tests -q          # 43 unit tests: preprocessing, aspects, lexicon, anomaly, risk, accounts
+..\env\Scripts\python -m scripts.smoke_test       # 23 end-to-end API tests against a running server
 ```
 
 ## Configuration

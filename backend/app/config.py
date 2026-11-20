@@ -132,11 +132,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # ---- Dashboard login ------------------------------------------------
-    # Set ADMIN_PASSWORD to require a login for the dashboard and API.
-    # Empty = open access (local development).
+    # Set ADMIN_PASSWORD to require a login for the dashboard and API; that
+    # account becomes the first admin. Empty = open access (local development).
     admin_username: str = "admin"
     admin_password: str = ""
     session_hours: float = 12
+    allow_signup: bool = True        # anyone can create a read-only viewer account
+    # Accounts live outside the mention database so the real and demo instances share them
+    users_db_path: Path = BASE_DIR / "data" / "users.db"
 
     @property
     def keyword_list(self) -> list[str]:

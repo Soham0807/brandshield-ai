@@ -27,7 +27,7 @@ const NAV = [
 export default function Layout() {
   const { connected, status } = useLive()
   const { resolved, toggle } = useTheme()
-  const { authEnabled, username, logout } = useAuth()
+  const { authEnabled, username, role, isAdmin, logout } = useAuth()
   const location = useLocation()
   const alerts = useApi('/alerts?status=open&limit=1', { interval: 60000 })
   useLiveEvent('alert', () => alerts.reload())
@@ -65,10 +65,15 @@ export default function Layout() {
                 <span className="hidden sm:inline">{resolved === 'dark' ? 'Day' : 'Night'}</span>
               </button>
               {authEnabled && (
-                <button type="button" onClick={logout} title={username ? `Signed in as ${username}` : 'Sign out'}
-                        className="flex items-center gap-1 uppercase tracking-[.14em] text-stone-500 transition hover:text-stone-50">
-                  <LogOut size={12} /> <span className="hidden sm:inline">Sign out</span>
-                </button>
+                <>
+                  <span className="hidden normal-case tracking-normal text-stone-400 md:inline" title={`Signed in as ${username} (${role})`}>
+                    {username} · <span className={isAdmin ? 'text-stone-50' : 'text-amber-400'}>{role}</span>
+                  </span>
+                  <button type="button" onClick={logout} title={`Sign out ${username}`}
+                          className="flex items-center gap-1 uppercase tracking-[.14em] text-stone-500 transition hover:text-stone-50">
+                    <LogOut size={12} /> <span className="hidden sm:inline">Sign out</span>
+                  </button>
+                </>
               )}
               <Tip text="Data updates on its own: new comments, risk score and alerts appear without refreshing the page.">
                 <span className={`flex items-center gap-1.5 font-semibold ${connected ? 'text-red-400' : 'text-stone-500'}`}>
@@ -114,6 +119,12 @@ export default function Layout() {
 
       <main key={resolved} className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-8">
         <PageIntro path={location.pathname} />
+        {authEnabled && !isAdmin && (
+          <p className="mb-4 border-l-2 border-amber-400 bg-ink-900 px-3 py-2 text-sm text-stone-400">
+            You are signed in as a <span className="font-semibold text-amber-400">viewer</span>: you can explore every page and analyse text,
+            but changes (settings, sources, crisis simulation, deleting data) need an admin.
+          </p>
+        )}
         <Outlet />
       </main>
 

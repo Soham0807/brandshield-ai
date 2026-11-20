@@ -40,6 +40,23 @@ def main():
         r = c.post("/api/auth/login", json={"username": settings.admin_username, "password": settings.admin_password})
         record("TC-34", "Login with correct password", r.status_code == 200 and "brandshield_session" in c.cookies,
                f"{r.status_code}, session cookie {'set' if 'brandshield_session' in c.cookies else 'missing'}")
+        # Sign-up creates a read-only viewer (separate client = separate browser)
+        v = httpx.Client(base_url=BASE, timeout=60)
+        r = v.post("/api/auth/register", json={"username": "smoketest_viewer", "password": "Smoke#Test2025"})
+        record("TC-35", "Sign-up creates viewer", r.status_code == 200 and r.json().get("role") == "viewer", f"{r.status_code} {r.json()}")
+        r1, r2 = v.get("/api/overview").status_code, v.put("/api/settings", json={"brand_name": "Hacked"}).status_code
+        r3 = v.post("/api/analyze", json={"text": "great coffee"}).status_code
+        record("TC-36", "Viewer is read-only", r1 == 200 and r2 == 403 and r3 == 200,
+               f"read {r1}, change settings {r2}, analyze {r3}")
+        r = v.get("/api/auth/users").status_code
+        record("TC-37", "Viewer cannot manage users", r == 403, f"{r}")
+        r = v.post("/api/auth/register", json={"username": "smoketest_viewer", "password": "Smoke#Test2025"}).status_code
+        record("TC-38", "Duplicate username refused", r == 422, f"{r}")
+        users = c.get("/api/auth/users").json().get("users", [])
+        d = c.delete("/api/auth/users/smoketest_viewer").status_code
+        after = v.get("/api/overview").status_code
+        record("TC-39", "Admin lists and deletes users", any(u["username"] == "smoketest_viewer" for u in users) and d == 200 and after == 401,
+               f"listed {len(users)} users, delete {d}, deleted user's session now {after}")
     global SESSION_COOKIE
     SESSION_COOKIE = c.cookies.get("brandshield_session")
 

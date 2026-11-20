@@ -1,6 +1,7 @@
 import { Plus, Save, Send, ServerCog, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import Accounts from '../components/Accounts'
 import { Card, ErrorBox, Spinner } from '../components/ui'
 import { api } from '../lib/api'
 import { aspectLabel } from '../lib/format'
@@ -108,6 +109,8 @@ export default function SettingsPage() {
           </div>
         </Card>
       </div>
+
+      <Accounts />
 
       <Card title="Appearance" subtitle="Paper for daylight, the night edition for dark rooms. Saved in this browser.">
         <Segmented
